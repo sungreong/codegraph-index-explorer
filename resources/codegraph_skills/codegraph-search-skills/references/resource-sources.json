@@ -1,0 +1,23 @@
+{
+  "lastReviewed": "2026-06-18",
+  "sources": [
+    {
+      "id": "codegraph-readme",
+      "url": "https://raw.githubusercontent.com/colbymchenry/codegraph/main/README.md",
+      "target": "codegraph-readme.md",
+      "purpose": "Refresh CodeGraph CLI and MCP command guidance."
+    },
+    {
+      "id": "mcp-client-best-practices",
+      "url": "https://modelcontextprotocol.io/docs/develop/clients/client-best-practices",
+      "target": "mcp-client-best-practices.html",
+      "purpose": "Refresh progressive tool discovery guidance."
+    },
+    {
+      "id": "codex-skills",
+      "url": "https://developers.openai.com/codex/skills",
+      "target": "codex-skills.html",
+      "purpose": "Refresh Codex skill packaging and metadata guidance."
+    }
+  ]
+}

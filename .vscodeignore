@@ -1,0 +1,15 @@
+.codegraph/
+.vscode-test/
+.vscode/
+.agents/
+.claude/
+artifacts/
+.gitignore
+AGENTS.md
+node_modules/
+src/
+test/
+scripts/
+tsconfig.json
+package-lock.json
+*.vsix

@@ -1,0 +1,162 @@
+{
+  "name": "codegraph-index-explorer",
+  "displayName": "Codegraph Explorer",
+  "description": "Explore existing .codegraph indexes in VS Code, inspect graph context, and copy agent-ready code locations.",
+  "version": "0.0.57",
+  "publisher": "local",
+  "icon": "resources/codegraph-index-explorer.png",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sungreong/codegraph-index-explorer.git"
+  },
+  "homepage": "https://github.com/sungreong/codegraph-index-explorer#readme",
+  "bugs": {
+    "url": "https://github.com/sungreong/codegraph-index-explorer/issues"
+  },
+  "preview": true,
+  "keywords": [
+    "codegraph",
+    "code-search",
+    "symbol-search",
+    "agent",
+    "developer-tools"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Codegraph runs the local Codegraph CLI against workspace files, so a trusted workspace is required."
+    }
+  },
+  "engines": {
+    "vscode": "^1.92.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "galleryBanner": {
+    "color": "#071328",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "workspaceContains:.codegraph",
+    "onCommand:codegraph.search",
+    "onCommand:codegraph.openGraph",
+    "onCommand:codegraph.openDashboard",
+    "onCommand:codegraph.showStatus",
+    "onCommand:codegraph.listFiles",
+    "onCommand:codegraph.refresh",
+    "onCommand:codegraph.syncBundledSkills",
+    "onCommand:codegraph.showUpdateHistory",
+    "onView:codegraph.actions"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "codegraph.openDashboard",
+        "title": "Codegraph: Open Dashboard"
+      },
+      {
+        "command": "codegraph.openGraph",
+        "title": "Codegraph: Open Graph Explorer"
+      },
+      {
+        "command": "codegraph.search",
+        "title": "Codegraph: Search Symbols"
+      },
+      {
+        "command": "codegraph.showStatus",
+        "title": "Codegraph: Show Status"
+      },
+      {
+        "command": "codegraph.listFiles",
+        "title": "Codegraph: List Indexed Files"
+      },
+      {
+        "command": "codegraph.refresh",
+        "title": "Codegraph: Refresh"
+      },
+      {
+        "command": "codegraph.syncBundledSkills",
+        "title": "Codegraph: Sync Bundled Agent Skills"
+      },
+      {
+        "command": "codegraph.showUpdateHistory",
+        "title": "Codegraph: Show Update History"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "codegraph.search",
+        "key": "ctrl+alt+g",
+        "mac": "cmd+alt+g",
+        "when": "codegraph.active"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codegraph",
+          "title": "Codegraph",
+          "icon": "resources/codegraph-activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "codegraph": [
+        {
+          "id": "codegraph.actions",
+          "name": "Codegraph",
+          "type": "webview"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Codegraph",
+      "properties": {
+        "codegraph.searchLimit": {
+          "type": "number",
+          "default": 20,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Maximum number of Codegraph search results to show."
+        },
+        "codegraph.cliPath": {
+          "type": "string",
+          "default": "codegraph",
+          "description": "Path or command name for the Codegraph CLI."
+        },
+        "codegraph.preloadOnActivation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Preload Codegraph status and indexed files after activation so dashboard and side-bar interactions feel faster."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "sync:vis-network": "node scripts/sync-vis-network.js",
+    "test:skills": "node scripts/validate-codegraph-skills.js",
+    "package": "npm test && vsce package --no-dependencies --allow-missing-repository",
+    "test:extension": "npm run compile && node test/vscode/runSmokeTest.js",
+    "test": "npm run compile && npm run test:skills && node test/packageActivation.test.js && node test/codegraphJson.test.js && node test/codegraphResults.test.js && node test/codegraphCommand.test.js && node test/codegraphWorkspace.test.js && node test/codegraphSkills.test.js && node test/dashboardHtml.test.js && node test/dashboardAssets.test.js && node test/sidebarView.test.js && node test/visNetworkAsset.test.js && node test/graphHtml.test.js && node test/graphAssets.test.js && node test/graphRuntime.test.js",
+    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run sync:vis-network && npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/vscode": "^1.92.0",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.9.2",
+    "typescript": "^5.5.4"
+  },
+  "dependencies": {
+    "vis-network": "^10.1.0"
+  }
+}

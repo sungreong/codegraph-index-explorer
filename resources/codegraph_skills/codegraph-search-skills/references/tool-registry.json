@@ -1,0 +1,95 @@
+{
+  "lastReviewed": "2026-06-18",
+  "primarySources": [
+    "https://github.com/colbymchenry/codegraph",
+    "https://modelcontextprotocol.io/docs/develop/clients/client-best-practices",
+    "https://developers.openai.com/codex/skills"
+  ],
+  "tools": [
+    {
+      "name": "codegraph_explore",
+      "capability": "understand_area",
+      "intent": "Primary tool for understanding an area, tracing a flow, or answering architecture and bug-orientation questions.",
+      "useFirst": true,
+      "returns": "Relevant source grouped by file, plus relationship context when available.",
+      "cliFallback": "Use codegraph query --json --path <workspace> --limit 20 <terms> to find entry symbols, then inspect the indexed files and lines.",
+      "avoidWhen": "The user only needs a location list."
+    },
+    {
+      "name": "codegraph_search",
+      "capability": "search_symbols",
+      "intent": "Locate symbols by exact or partial name.",
+      "useFirst": false,
+      "returns": "Locations only.",
+      "cliFallback": "codegraph query --json --path <workspace> --limit <n> <query>",
+      "avoidWhen": "The task needs source code or design understanding."
+    },
+    {
+      "name": "codegraph_node",
+      "capability": "inspect_symbol",
+      "intent": "Inspect one symbol or file in full, including callers/callees trails when available.",
+      "useFirst": false,
+      "returns": "One matching symbol or disambiguated matches, optionally with source.",
+      "cliFallback": "Use codegraph query --json --path <workspace> --limit <n> <symbol>, then open the returned file and line.",
+      "avoidWhen": "Several related symbols or a whole area are needed."
+    },
+    {
+      "name": "codegraph_callers",
+      "capability": "find_callers",
+      "intent": "Find functions, methods, or classes that call a symbol.",
+      "useFirst": false,
+      "returns": "Caller locations and related metadata.",
+      "cliFallback": "codegraph callers --json --path <workspace> --limit <n> <symbol>",
+      "avoidWhen": "The user asked for a whole flow; use explore instead."
+    },
+    {
+      "name": "codegraph_callees",
+      "capability": "find_callees",
+      "intent": "Find functions or methods called by a symbol.",
+      "useFirst": false,
+      "returns": "Callee locations and related metadata.",
+      "cliFallback": "codegraph callees --json --path <workspace> --limit <n> <symbol>",
+      "avoidWhen": "The user asked for a whole flow; use explore instead."
+    },
+    {
+      "name": "codegraph_impact",
+      "capability": "analyze_impact",
+      "intent": "Estimate refactor blast radius or affected symbols.",
+      "useFirst": false,
+      "returns": "Affected symbols by dependency depth.",
+      "cliFallback": "codegraph impact --json --path <workspace> --depth <d> <symbol>",
+      "avoidWhen": "The task is just opening a result."
+    },
+    {
+      "name": "codegraph_files",
+      "capability": "list_indexed_files",
+      "intent": "List indexed files and metadata.",
+      "useFirst": false,
+      "returns": "File tree or flat file list with language/symbol counts.",
+      "cliFallback": "codegraph files --json --path <workspace> --format flat",
+      "avoidWhen": "The user asks about a symbol relationship."
+    },
+    {
+      "name": "codegraph_status",
+      "capability": "check_index_status",
+      "intent": "Check index health, file/node/edge counts, and pending sync state.",
+      "useFirst": false,
+      "returns": "Index status metadata.",
+      "cliFallback": "codegraph status --json <workspace>",
+      "avoidWhen": "The user asks a code question and the index is already active."
+    }
+  ],
+  "fallbackOrder": [
+    "Use registered Codegraph MCP tools when available.",
+    "If MCP is unavailable and .codegraph exists, use Codegraph CLI commands.",
+    "Use grep/read only when Codegraph MCP and CLI are both unavailable or the workspace is not indexed."
+  ],
+  "triggerExamples": [
+    "query_router 어디에 있어?",
+    "where is query_router?",
+    "find FooService",
+    "what calls determine_route?",
+    "이 함수 어디서 호출돼?",
+    "이걸 바꾸면 영향 받는 곳 찾아줘"
+  ]
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codegraph Search Skills"
+  short_description: "Find code with Codegraph MCP or CLI"
+  default_prompt: "Use $codegraph-search-skills to find where query_router lives with Codegraph MCP or CLI before grep."
