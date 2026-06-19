@@ -2,7 +2,7 @@ const assert = require("node:assert/strict");
 const vscode = require("vscode");
 
 async function run() {
-  const extension = vscode.extensions.getExtension("local.codegraph-index-explorer");
+  const extension = vscode.extensions.getExtension("datanewbie-labs.codegraph-index-explorer");
   assert.ok(extension, "extension should be discoverable by publisher.name");
 
   await extension.activate();

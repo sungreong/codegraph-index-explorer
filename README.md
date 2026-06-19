@@ -149,9 +149,10 @@ Install the generated `.vsix` from VS Code with
 
 Before publishing publicly:
 
-- Replace the temporary `publisher` value in `package.json`.
-- Add repository, homepage, and issue tracker metadata once the GitHub
-  repository is created.
+- Confirm the `publisher` value in `package.json` matches the Marketplace
+  publisher account.
+- Confirm repository, homepage, and issue tracker metadata point at the public
+  GitHub repository.
 - Run `npm test`.
 - Confirm generated `.vsix` files, local `.codegraph` indexes, test artifacts,
   and `node_modules` are not committed.

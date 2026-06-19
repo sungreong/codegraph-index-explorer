@@ -5,6 +5,7 @@ const path = require("node:path");
 const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8"));
 
 assert.equal(manifest.name, "codegraph-index-explorer");
+assert.equal(manifest.publisher, "datanewbie-labs");
 assert.equal(manifest.displayName, "Codegraph Explorer");
 assert.equal(manifest.icon, "resources/codegraph-index-explorer.png");
 assert.ok(fs.existsSync(path.join(__dirname, "..", manifest.icon)), "marketplace icon should exist");

@@ -3,7 +3,7 @@
   "displayName": "Codegraph Explorer",
   "description": "Explore existing .codegraph indexes in VS Code, inspect graph context, and copy agent-ready code locations.",
   "version": "0.0.57",
-  "publisher": "local",
+  "publisher": "datanewbie-labs",
   "icon": "resources/codegraph-index-explorer.png",
   "license": "MIT",
   "repository": {
