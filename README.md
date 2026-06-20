@@ -24,6 +24,12 @@ deliberately narrower:
 This project is best described as a Codegraph index explorer and agent handoff
 tool, not an official Codegraph sub-extension.
 
+## Install
+
+Install Codegraph Explorer from the Visual Studio Marketplace:
+
+[datanewbie-labs.codegraph-index-explorer](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.codegraph-index-explorer)
+
 ## What It Does
 
 - Activates automatically when the workspace contains a `.codegraph` directory.

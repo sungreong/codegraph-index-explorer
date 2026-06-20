@@ -50,3 +50,24 @@ large workflows.
 
 - Update documentation when user-facing behavior, setup steps, or project conventions change.
 - Keep documentation concise and accurate.
+
+## Release and Publishing
+
+- Marketplace publisher is `datanewbie-labs`; the Marketplace extension ID is
+  `datanewbie-labs.codegraph-index-explorer`.
+- Before every Marketplace release, update `version` in both `package.json` and
+  `package-lock.json`, and add a matching entry to `CHANGELOG.md`.
+- Never republish the same Marketplace version. If a packaged VSIX has already
+  been uploaded, publish the next fix as a new patch version.
+- Run `npm test` before packaging, then create the release VSIX with
+  `npm run package`.
+- Treat generated `.vsix` files as build artifacts. Do not commit them to the
+  repository; upload them to the Visual Studio Marketplace manually or attach
+  them to a GitHub Release only when explicitly requested.
+- For local install tests before a release, keep the package clearly separate
+  from the final Marketplace upload, either by using the next unreleased patch
+  version or a clearly named throwaway VSIX. Do not ask users to install a VSIX
+  whose version is already published unless it is the exact Marketplace build.
+- After publishing, update GitHub only with source, manifest, README, changelog,
+  and test changes. Keep `node_modules`, `out`, `.codegraph`, `artifacts`, and
+  generated VSIX files out of git.
