@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.0.59] - 2026-06-22
+
+### Fixed
+
+- Improves cross-platform path handling for Windows, macOS, and Linux workspaces.
+- Adds macOS/Linux Codegraph CLI fallback candidates for common npm, local, and Homebrew install locations.
+- Expands `~` in the configured Codegraph CLI path.
+
 ## [0.0.58] - 2026-06-22
 
 ### Changed

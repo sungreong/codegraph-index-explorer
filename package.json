@@ -2,7 +2,7 @@
   "name": "codegraph-index-explorer",
   "displayName": "Codegraph Explorer",
   "description": "Explore existing .codegraph indexes in VS Code, inspect graph context, and copy agent-ready code locations.",
-  "version": "0.0.58",
+  "version": "0.0.59",
   "publisher": "datanewbie-labs",
   "icon": "resources/codegraph-index-explorer.png",
   "license": "MIT",
@@ -145,7 +145,7 @@
     "test:skills": "node scripts/validate-codegraph-skills.js",
     "package": "npm test && vsce package --no-dependencies --allow-missing-repository",
     "test:extension": "npm run compile && node test/vscode/runSmokeTest.js",
-    "test": "npm run compile && npm run test:skills && node test/packageActivation.test.js && node test/codegraphJson.test.js && node test/codegraphResults.test.js && node test/codegraphCommand.test.js && node test/codegraphWorkspace.test.js && node test/codegraphSkills.test.js && node test/dashboardHtml.test.js && node test/dashboardAssets.test.js && node test/sidebarView.test.js && node test/visNetworkAsset.test.js && node test/graphHtml.test.js && node test/graphAssets.test.js && node test/graphRuntime.test.js",
+    "test": "npm run compile && npm run test:skills && node test/packageActivation.test.js && node test/codegraphJson.test.js && node test/codegraphResults.test.js && node test/codegraphPath.test.js && node test/codegraphCommand.test.js && node test/codegraphWorkspace.test.js && node test/codegraphSkills.test.js && node test/dashboardHtml.test.js && node test/dashboardAssets.test.js && node test/sidebarView.test.js && node test/visNetworkAsset.test.js && node test/graphHtml.test.js && node test/graphAssets.test.js && node test/graphRuntime.test.js",
     "watch": "tsc -watch -p ./",
     "vscode:prepublish": "npm run sync:vis-network && npm run compile"
   },

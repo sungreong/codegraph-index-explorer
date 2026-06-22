@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
-import * as path from "node:path";
 import { promisify } from "node:util";
 import * as vscode from "vscode";
 import { getCodegraphCommandCandidates, getCodegraphInvocation } from "./codegraphCommand";
 import { parseCodegraphJsonOutput } from "./codegraphJson";
+import { resolveCodegraphPath } from "./codegraphPath";
 import {
   CodegraphFileResult,
   CodegraphRelatedResult,
@@ -113,8 +113,7 @@ export async function getCodegraphImpact(workspacePath: string, symbol: string, 
 }
 
 export function resolveResultUri(workspacePath: string, resultPath: string): vscode.Uri {
-  const resolvedPath = path.isAbsolute(resultPath) ? resultPath : path.join(workspacePath, resultPath);
-  return vscode.Uri.file(resolvedPath);
+  return vscode.Uri.file(resolveCodegraphPath(workspacePath, resultPath));
 }
 
 export function clearCodegraphCache(): void {

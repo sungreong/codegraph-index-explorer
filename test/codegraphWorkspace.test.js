@@ -15,4 +15,16 @@ assert.deepEqual(workspace, {
 
 assert.equal(findCodegraphWorkspaceInfo(folders, () => false), undefined);
 
+const posixFolders = [
+  { name: "plain", fsPath: "/repo/plain" },
+  { name: "indexed", fsPath: "/repo/indexed" },
+];
+
+const posixWorkspace = findCodegraphWorkspaceInfo(posixFolders, (targetPath) => targetPath === "/repo/indexed/.codegraph");
+
+assert.deepEqual(posixWorkspace, {
+  folder: { name: "indexed", fsPath: "/repo/indexed" },
+  codegraphPath: "/repo/indexed/.codegraph",
+});
+
 console.log("codegraphWorkspace tests passed");

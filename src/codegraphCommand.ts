@@ -1,4 +1,5 @@
 import * as path from "node:path";
+import { expandHomePath } from "./codegraphPath";
 
 export interface CodegraphInvocation {
   command: string;
@@ -10,22 +11,29 @@ export function getCodegraphCommandCandidates(
   platform: NodeJS.Platform = process.platform,
   env: NodeJS.ProcessEnv = process.env,
 ): string[] {
-  const configured = configuredCommand.trim() || "codegraph";
+  const configured = expandHomePath(configuredCommand.trim() || "codegraph", platform, env);
 
   if (configured !== "codegraph") {
     return [configured];
   }
 
-  if (platform !== "win32") {
-    return ["codegraph"];
+  if (platform === "win32") {
+    return unique([
+      "codegraph.cmd",
+      "codegraph.exe",
+      "codegraph",
+      env.APPDATA ? path.win32.join(env.APPDATA, "npm", "codegraph.cmd") : undefined,
+      env.USERPROFILE ? path.win32.join(env.USERPROFILE, "AppData", "Roaming", "npm", "codegraph.cmd") : undefined,
+    ]);
   }
 
   return unique([
-    "codegraph.cmd",
-    "codegraph.exe",
     "codegraph",
-    env.APPDATA ? path.join(env.APPDATA, "npm", "codegraph.cmd") : undefined,
-    env.USERPROFILE ? path.join(env.USERPROFILE, "AppData", "Roaming", "npm", "codegraph.cmd") : undefined,
+    env.NPM_CONFIG_PREFIX ? path.posix.join(env.NPM_CONFIG_PREFIX, "bin", "codegraph") : undefined,
+    env.HOME ? path.posix.join(env.HOME, ".npm-global", "bin", "codegraph") : undefined,
+    env.HOME ? path.posix.join(env.HOME, ".local", "bin", "codegraph") : undefined,
+    platform === "darwin" ? "/opt/homebrew/bin/codegraph" : undefined,
+    "/usr/local/bin/codegraph",
   ]);
 }
 

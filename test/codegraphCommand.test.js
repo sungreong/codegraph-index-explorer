@@ -18,7 +18,25 @@ assert.deepEqual(
   ["C:\\tools\\codegraph.cmd"],
 );
 
-assert.deepEqual(getCodegraphCommandCandidates("codegraph", "linux", {}), ["codegraph"]);
+assert.deepEqual(
+  getCodegraphCommandCandidates("~/bin/codegraph", "linux", { HOME: "/home/tester" }),
+  ["/home/tester/bin/codegraph"],
+);
+
+const linuxCandidates = getCodegraphCommandCandidates("codegraph", "linux", {
+  HOME: "/home/tester",
+  NPM_CONFIG_PREFIX: "/home/tester/.npm-packages",
+});
+assert.equal(linuxCandidates[0], "codegraph");
+assert.ok(linuxCandidates.includes("/home/tester/.npm-packages/bin/codegraph"));
+assert.ok(linuxCandidates.includes("/home/tester/.npm-global/bin/codegraph"));
+assert.ok(linuxCandidates.includes("/home/tester/.local/bin/codegraph"));
+assert.ok(linuxCandidates.includes("/usr/local/bin/codegraph"));
+
+const macCandidates = getCodegraphCommandCandidates("codegraph", "darwin", { HOME: "/Users/tester" });
+assert.equal(macCandidates[0], "codegraph");
+assert.ok(macCandidates.includes("/opt/homebrew/bin/codegraph"));
+assert.ok(macCandidates.includes("/usr/local/bin/codegraph"));
 
 assert.deepEqual(
   getCodegraphInvocation("codegraph.cmd", ["status", "--json", "."], "win32", { ComSpec: "C:\\Windows\\System32\\cmd.exe" }),
