@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.0.58] - 2026-06-22
+
+### Changed
+
+- Refreshes the Marketplace README with installation-focused copy, initial setup guidance, and product screenshots.
+- Adds a Korean README for developers who prefer a localized setup and usage guide.
+
 ## [0.0.57] - 2026-06-19
 
 ### Fixed
