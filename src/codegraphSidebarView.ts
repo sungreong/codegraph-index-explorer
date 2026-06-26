@@ -11,6 +11,7 @@ import {
   queryCodegraph,
   resolveResultUri,
 } from "./codegraphCli";
+import { CODEGRAPH_SKILL_TARGET_ROOTS } from "./codegraphSkills";
 
 interface SidebarState {
   active: boolean;
@@ -35,6 +36,16 @@ type SidebarMessage =
   | { type: "copy"; text?: string; label?: string };
 
 type SearchMode = "symbols" | "callers" | "callees" | "impact";
+type SidebarIconName =
+  | "checkSquare"
+  | "pin"
+  | "agent"
+  | "download"
+  | "dashboard"
+  | "graph"
+  | "list"
+  | "refresh"
+  | "copy";
 
 export class CodegraphSidebarView implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | undefined;
@@ -231,6 +242,7 @@ export class CodegraphSidebarView implements vscode.WebviewViewProvider {
 }
 
 function sidebarHtml(nonce: string): string {
+  const skillTargetSummary = CODEGRAPH_SKILL_TARGET_ROOTS.map((target) => target.label).join(", ");
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'nonce-${nonce}';">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -250,19 +262,19 @@ function sidebarHtml(nonce: string): string {
       <input id="limit" type="number" min="1" max="100" value="20" title="Limit">
     </div>
     <div class="actions" aria-label="Result actions">
-      <button id="selectAll" type="button" title="Select all visible results">☑</button>
-      <button id="copyLocations" type="button" title="Copy selected locations, or all results if none are selected">📍</button>
-      <button id="copyPrompt" type="button" title="Copy agent prompt for selected results, or all results if none are selected">AI</button>
-      <button id="syncSkills" type="button" title="Sync bundled Codegraph agent skill into this workspace">⇩</button>
-      <button id="dashboard" type="button" title="Open dashboard">▦</button>
-      <button id="graph" type="button" title="Open graph explorer">◎</button>
-      <button id="changelog" type="button" title="Show update history">≡</button>
-      <button id="refresh" type="button" title="Refresh Codegraph status">↻</button>
+      <button id="selectAll" type="button" title="Select all visible results" aria-label="Select all visible results">${sidebarIcon("checkSquare")}</button>
+      <button id="copyLocations" type="button" title="Copy selected locations, or all results if none are selected" aria-label="Copy selected locations, or all results if none are selected">${sidebarIcon("pin")}</button>
+      <button id="copyPrompt" type="button" title="Copy agent prompt for selected results, or all results if none are selected" aria-label="Copy agent prompt for selected results, or all results if none are selected">${sidebarIcon("agent")}</button>
+      <button id="syncSkills" type="button" title="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}" aria-label="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}">${sidebarIcon("download")}</button>
+      <button id="dashboard" type="button" title="Open dashboard" aria-label="Open dashboard">${sidebarIcon("dashboard")}</button>
+      <button id="graph" type="button" title="Open graph explorer" aria-label="Open graph explorer">${sidebarIcon("graph")}</button>
+      <button id="changelog" type="button" title="Show update history" aria-label="Show update history">${sidebarIcon("list")}</button>
+      <button id="refresh" type="button" title="Refresh Codegraph status" aria-label="Refresh Codegraph status">${sidebarIcon("refresh")}</button>
     </div>
     <div id="error" class="error" hidden></div>
     <div id="commandRow" class="command-row" hidden>
       <div id="commandPreview" class="command-preview"></div>
-      <button id="copyCommand" type="button" title="Copy Codegraph command">⧉</button>
+      <button id="copyCommand" type="button" title="Copy Codegraph command" aria-label="Copy Codegraph command">${sidebarIcon("copy")}</button>
     </div>
     <div id="meta" class="meta">0 results · 0 selected</div>
     <div id="results" class="results"><div class="empty">Search here to show Codegraph results in this side tab.</div></div>
@@ -272,7 +284,16 @@ function sidebarHtml(nonce: string): string {
 
 function sidebarStyles(): string {
   return `
-    body { margin: 0; color: var(--vscode-sideBar-foreground); background: var(--vscode-sideBar-background); font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); }
+    body {
+      margin: 0;
+      color: var(--vscode-sideBar-foreground);
+      background: var(--vscode-sideBar-background);
+      font-family: var(--vscode-font-family);
+      font-size: var(--vscode-font-size);
+      line-height: 1.35;
+      font-kerning: normal;
+      text-rendering: optimizeLegibility;
+    }
     [hidden] { display: none !important; }
     .sidebar { display: grid; gap: 8px; padding: 10px; }
     .status { display: grid; gap: 3px; color: var(--vscode-descriptionForeground); }
@@ -280,14 +301,43 @@ function sidebarStyles(): string {
     .status span { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
     .filters { display: grid; grid-template-columns: 1fr 1fr 58px; gap: 6px; }
-    input, select, button { box-sizing: border-box; min-width: 0; min-height: 28px; border-radius: 4px; }
+    input, select, button { box-sizing: border-box; min-width: 0; min-height: 28px; border-radius: 4px; font-family: inherit; }
     input, select { width: 100%; border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); background: var(--vscode-input-background); padding: 5px 7px; }
     select { border-color: var(--vscode-dropdown-border); color: var(--vscode-dropdown-foreground); background: var(--vscode-dropdown-background); }
     button { border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); padding: 4px 7px; font-weight: 600; cursor: pointer; }
     button:hover { background: var(--vscode-button-secondaryHoverBackground); }
     .actions { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
-    .actions button { font-size: 12px; padding-inline: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    #copyPrompt { font-weight: 800; letter-spacing: 0; }
+    .actions button,
+    #copyCommand {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 30px;
+      padding: 0;
+      border-color: color-mix(in srgb, var(--vscode-button-border, var(--vscode-panel-border)) 68%, transparent);
+      border-radius: 5px;
+      overflow: hidden;
+    }
+    .actions button:hover,
+    #copyCommand:hover {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-hoverBackground);
+    }
+    .actions button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+    .sidebar-icon {
+      width: 15px;
+      height: 15px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.85;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
     .command-row {
       display: grid;
       grid-template-columns: minmax(0, 1fr) 34px;
@@ -318,6 +368,22 @@ function sidebarStyles(): string {
     .detail, .sig { margin-top: 2px; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
     .kind { color: var(--vscode-badge-foreground); background: var(--vscode-badge-background); border-radius: 999px; padding: 1px 6px; font-size: 10px; margin-right: 4px; }
   `;
+}
+
+function sidebarIcon(name: SidebarIconName): string {
+  const paths: Record<SidebarIconName, string> = {
+    checkSquare: '<rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="m8 12 3 3 5-6"></path>',
+    pin: '<path d="M12 21s6-5.1 6-11a6 6 0 0 0-12 0c0 5.9 6 11 6 11Z"></path><circle cx="12" cy="10" r="2"></circle>',
+    agent: '<rect x="5" y="7" width="14" height="11" rx="3"></rect><path d="M9 7V5"></path><path d="M15 7V5"></path><path d="M9 12h.01"></path><path d="M15 12h.01"></path><path d="M10 16h4"></path>',
+    download: '<path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 20h14"></path>',
+    dashboard: '<rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect>',
+    graph: '<circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="7" r="2.5"></circle><circle cx="18" cy="17" r="2.5"></circle><path d="M8.3 11 15.7 8"></path><path d="M8.3 13 15.7 16"></path>',
+    list: '<path d="M8 6h12"></path><path d="M8 12h12"></path><path d="M8 18h12"></path><path d="M4 6h.01"></path><path d="M4 12h.01"></path><path d="M4 18h.01"></path>',
+    refresh: '<path d="M20 11a8 8 0 0 0-14.4-4.8L4 8"></path><path d="M4 4v4h4"></path><path d="M4 13a8 8 0 0 0 14.4 4.8L20 16"></path><path d="M20 20v-4h-4"></path>',
+    copy: '<rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15V7a2 2 0 0 1 2-2h8"></path>',
+  };
+
+  return `<svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name]}</svg>`;
 }
 
 function sidebarScript(): string {
@@ -506,6 +572,10 @@ function summarizeStatus(status: unknown): string {
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function escapeAttribute(value: string): string {
+  return value.replace(/[&"]/g, (character) => character === "&" ? "&amp;" : "&quot;");
 }
 
 function getNonce(): string {

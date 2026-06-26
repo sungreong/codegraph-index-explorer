@@ -3,6 +3,9 @@
 .vscode/
 .agents/
 .claude/
+.codex/
+.gemini/
+.mps/
 artifacts/
 .gitignore
 AGENTS.md

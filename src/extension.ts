@@ -14,7 +14,7 @@ import {
 import { notifyCodegraphUpdate, openCodegraphChangelog } from "./codegraphChangelog";
 import { CodegraphDashboardPanel } from "./codegraphPanel";
 import { CodegraphGraphPanel } from "./codegraphGraphPanel";
-import { syncBundledCodegraphSkills } from "./codegraphSkills";
+import { CODEGRAPH_SKILL_TARGET_ROOTS, syncBundledCodegraphSkills } from "./codegraphSkills";
 import { CodegraphSidebarView } from "./codegraphSidebarView";
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -226,9 +226,22 @@ async function syncBundledSkills(context: vscode.ExtensionContext): Promise<void
   }
 
   const changed = report.copied + report.updated;
+  const targetSummary = summarizeSkillTargetRoots(folder.uri.fsPath, report.targetRoots);
   vscode.window.showInformationMessage(
-    `Synced ${report.skills.join(", ")} to ${report.targets.length} skill folders: ${changed} changed, ${report.unchanged} unchanged, ${report.skipped} skipped.`,
+    `Synced ${report.skills.length} Codegraph skills to ${targetSummary}: ${changed} changed, ${report.unchanged} unchanged, ${report.skipped} skipped.`,
   );
+}
+
+function summarizeSkillTargetRoots(workspacePath: string, targetRoots: string[]): string {
+  const labels = targetRoots.map((target) => path.relative(workspacePath, target) || ".").sort();
+  const normalized = labels.map((label) => label.split(path.sep).join("/"));
+  const knownOrder = CODEGRAPH_SKILL_TARGET_ROOTS.map((target) => target.relativePath);
+  const ordered = [
+    ...knownOrder.filter((label) => normalized.includes(label)),
+    ...normalized.filter((label) => !knownOrder.includes(label)),
+  ];
+
+  return ordered.length > 0 ? ordered.join(", ") : `${targetRoots.length} target roots`;
 }
 
 async function selectWorkspaceFolderForSkills(): Promise<vscode.WorkspaceFolder | undefined> {

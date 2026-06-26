@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codegraph Setup"
+  short_description: "Install Codegraph across OS environments"
+  default_prompt: "Use $codegraph-setup to install and initialize Codegraph in this environment."

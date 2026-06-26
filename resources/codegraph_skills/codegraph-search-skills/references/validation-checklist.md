@@ -11,5 +11,5 @@ Run these passes after changing `SKILL.md`, references, scripts, or extension pa
 6. Sync safety: run the sync script in a temporary workspace and confirm writes stay under `codegraph_skills/`.
 7. Idempotence: run sync twice and confirm the second run reports unchanged files unless inputs changed.
 8. Package inclusion: build or dry-run the VSIX package and confirm `resources/codegraph_skills/**` is included.
-9. Extension command: run the command that exports bundled skills and confirm `codegraph_skills/`, `.agents/skills/`, `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` targets update without overwriting locally modified files.
+9. Extension command: run the command that exports bundled skills and confirm `codegraph_skills/`, `.agents/skills/`, `.claude/skills/`, `.codex/skills/`, `.gemini/skills/`, and `.cursor/skills/` targets update without overwriting locally modified files.
 10. Repository checks: run the relevant compile/tests and fix failures before shipping.

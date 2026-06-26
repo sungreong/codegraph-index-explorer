@@ -1,5 +1,32 @@
 # Change Log
 
+## [0.0.61] - 2026-06-25
+
+### Added
+
+- Adds persisted Codegraph setup diagnosis records so future setup requests can reuse prior environment findings.
+- Detects Codegraph executables that exist but fail at runtime because `node` is missing from the MCP process `PATH`.
+
+### Changed
+
+- Installs bundled Codegraph skills into all configured agent target roots in one action, including `.cursor/skills`, and creates missing folders automatically.
+- Centralizes agent skill target roots so future agent destinations can be added from one constant list.
+- Expands setup guidance for nvm-managed Codegraph installs where MCP launchers do not inherit the interactive shell PATH.
+- Documents MCP `env.PATH` fixes for nvm-installed Codegraph binaries.
+
+## [0.0.60] - 2026-06-25
+
+### Added
+
+- Adds a bundled `codegraph-setup` skill for installing, initializing, and repairing Codegraph across Windows, macOS, Linux, WSL, Docker, and dev container environments.
+- Documents Codegraph CLI bootstrap flows for environments without `npm`, including Debian/Ubuntu, Alpine, Fedora/RHEL, and Dockerfile examples.
+- Adds MCP PATH troubleshooting for cases where Codegraph is installed but agents cannot resolve the `codegraph` executable.
+
+### Changed
+
+- Installs bundled Codegraph skills into `codegraph_skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, and `.gemini/skills`, creating missing folders.
+- Updates the side-bar install action with consistent SVG icon styling and clearer labels for bundled skill installation.
+
 ## [0.0.59] - 2026-06-22
 
 ### Fixed

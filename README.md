@@ -54,9 +54,76 @@ Requirements:
 
 - VS Code `1.92.0` or newer.
 - A trusted VS Code workspace.
+- Node.js with `npm`, if the Codegraph CLI is not installed yet.
 - The `codegraph` CLI available on `PATH`, or configured with
   `codegraph.cliPath`.
 - A workspace initialized with Codegraph.
+
+Install the Codegraph CLI first if `codegraph --version` is not found.
+
+If `npm` is not found, install Node.js and npm first. Minimal Linux containers
+often do not include them.
+
+Debian/Ubuntu:
+
+```sh
+apt-get update
+apt-get install -y nodejs npm
+```
+
+Alpine:
+
+```sh
+apk add --no-cache nodejs npm
+```
+
+Fedora/RHEL:
+
+```sh
+dnf install -y nodejs npm
+```
+
+Windows PowerShell:
+
+```powershell
+node --version
+npm --version
+npm install -g @colbymchenry/codegraph
+codegraph --version
+```
+
+If PowerShell blocks the npm script shim, verify with `codegraph.cmd --version`
+and set `codegraph.cliPath` to the full `codegraph.cmd` path shown by
+`where.exe codegraph`.
+
+macOS/Linux:
+
+```sh
+node --version
+npm --version
+npm install -g @colbymchenry/codegraph
+codegraph --version
+```
+
+For a Debian/Ubuntu-based Dockerfile:
+
+```dockerfile
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends nodejs npm \
+  && npm install -g @colbymchenry/codegraph \
+  && rm -rf /var/lib/apt/lists/*
+```
+
+If global npm installs need elevated permissions, prefer a user npm prefix over
+`sudo`:
+
+```sh
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+export PATH="$HOME/.npm-global/bin:$PATH"
+npm install -g @colbymchenry/codegraph
+codegraph --version
+```
 
 Basic setup:
 
@@ -75,6 +142,57 @@ If your CLI is not available as `codegraph`, set the path in VS Code settings:
   "codegraph.cliPath": "/absolute/path/to/codegraph"
 }
 ```
+
+Optional agent MCP setup:
+
+```sh
+codegraph install
+```
+
+For non-interactive agent setup, use:
+
+```sh
+codegraph install --target auto --location global --yes
+```
+
+The VS Code extension can read a local `.codegraph` index without MCP, but MCP
+setup lets supported coding agents call Codegraph tools directly.
+
+### MCP PATH Troubleshooting
+
+If MCP logs say:
+
+```text
+Connection failed: Executable not found in $PATH: "codegraph"
+```
+
+then Codegraph may be installed, but the MCP process cannot find it. For example,
+the binary may be at `/root/.local/bin/codegraph` while MCP is configured as
+`"command": "codegraph"` and the active `PATH` does not include
+`/root/.local/bin`.
+
+Confirm:
+
+```sh
+printf '%s\n' "$PATH"
+ls -l /root/.local/bin/codegraph 2>/dev/null || true
+command -v codegraph || true
+```
+
+Ask before changing the environment. Then choose one fix:
+
+```sh
+# Option 1: symlink into a directory already on PATH
+ln -s /root/.local/bin/codegraph /usr/local/bin/codegraph
+
+# Option 2: add ~/.local/bin to future shells
+echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+export PATH="$HOME/.local/bin:$PATH"
+```
+
+Alternatively, edit the MCP config to use the absolute binary path, such as
+`/root/.local/bin/codegraph`. Restart or refresh the agent after changing PATH
+or MCP config.
 
 ## Screenshots
 
@@ -111,7 +229,7 @@ actions.
 | `Codegraph: Show Status` | Show Codegraph workspace status. |
 | `Codegraph: List Indexed Files` | Browse indexed files. |
 | `Codegraph: Refresh` | Clear cached extension state and refresh data. |
-| `Codegraph: Sync Bundled Agent Skills` | Copy the bundled Codegraph skill into supported agent folders. |
+| `Codegraph: Install Bundled Agent Skills` | Copy bundled Codegraph skills into `codegraph_skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, `.gemini/skills`, and `.cursor/skills` in one action, creating missing folders. |
 | `Codegraph: Show Update History` | Show extension changelog entries. |
 
 ## Settings

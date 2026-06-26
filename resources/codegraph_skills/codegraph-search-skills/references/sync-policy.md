@@ -11,5 +11,5 @@ Use this policy when updating `codegraph_skills/context/`:
 - Use web refresh only for documentation or source metadata; do not download executable tooling automatically.
 - Keep downloaded docs under `codegraph_skills/downloads/` and record URL, timestamp, and output path.
 - Keep generated context separate from source files. Do not write outside `codegraph_skills/` unless the user explicitly asks to install the discoverable skill into `.agents/skills/`.
-- When syncing bundled skills from the VS Code extension, install the same skill into `codegraph_skills/`, `.agents/skills/`, `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` so common agent runtimes can discover it.
+- When syncing bundled skills from the VS Code extension, install the same skill into every configured agent target root, currently `codegraph_skills/`, `.agents/skills/`, `.claude/skills/`, `.codex/skills/`, `.gemini/skills/`, and `.cursor/skills/`, so common agent runtimes can discover it.
 - Preserve workspace edits. A sync should overwrite a file only when the file still matches the last bundled hash recorded in `.codegraph-skill-sync.json`; otherwise skip the file and report the conflict.

@@ -35,6 +35,101 @@ Common triggers for this skill:
 - `이걸 바꾸면 영향 받는 곳 찾아줘`
 - `show indexed files under mktmsg`
 
+## Codegraph CLI Bootstrap
+
+Use this section when the user asks to install, initialize, or repair Codegraph and `codegraph --version` is unavailable.
+
+First check for Node.js and npm:
+
+```sh
+node --version
+npm --version
+```
+
+If `npm` is missing, install Node.js and npm for the current OS before installing Codegraph. Minimal containers often omit both.
+
+Debian/Ubuntu:
+
+```sh
+apt-get update
+apt-get install -y nodejs npm
+```
+
+Alpine:
+
+```sh
+apk add --no-cache nodejs npm
+```
+
+Fedora/RHEL:
+
+```sh
+dnf install -y nodejs npm
+```
+
+For a Debian/Ubuntu-based Dockerfile:
+
+```dockerfile
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends nodejs npm \
+  && npm install -g @colbymchenry/codegraph \
+  && rm -rf /var/lib/apt/lists/*
+```
+
+Install the Codegraph CLI through npm:
+
+```sh
+npm install -g @colbymchenry/codegraph
+codegraph --version
+```
+
+Windows notes:
+
+- In PowerShell, if the npm `.ps1` shim is blocked by execution policy, try `codegraph.cmd --version`.
+- Use `where.exe codegraph` to find the installed shim path.
+- If VS Code cannot find the CLI, set `codegraph.cliPath` to the full `codegraph.cmd` or `codegraph.exe` path.
+
+macOS/Linux notes:
+
+- If global npm install fails with a permissions error, prefer a user npm prefix before retrying:
+
+```sh
+mkdir -p ~/.npm-global
+npm config set prefix ~/.npm-global
+export PATH="$HOME/.npm-global/bin:$PATH"
+npm install -g @colbymchenry/codegraph
+codegraph --version
+```
+
+- Persist the PATH change in the user's shell profile when needed.
+
+MCP PATH-only failure:
+
+- If logs say `Executable not found in $PATH: "codegraph"` but the binary exists elsewhere, treat it as a setup issue and use `$codegraph-setup`.
+- Before changing PATH, adding symlinks, editing shell profiles, or rewriting MCP config, explain the planned fix and ask the user for confirmation once.
+- Common fixes are adding `/root/.local/bin` to PATH, symlinking `/root/.local/bin/codegraph` into `/usr/local/bin`, or changing MCP config to an absolute command path.
+
+After the CLI works, initialize the workspace:
+
+```sh
+codegraph init <workspace-root>
+codegraph status --json <workspace-root>
+```
+
+Optional agent MCP setup:
+
+```sh
+codegraph install
+```
+
+For non-interactive setup in agent workflows, use:
+
+```sh
+codegraph install --target auto --location global --yes
+```
+
+The VS Code extension only needs the CLI and `.codegraph` index. MCP install is useful when a supported coding agent should call Codegraph tools directly.
+
 ## Task Map
 
 - For architecture, "how does this work", bug orientation, or flow tracing, use MCP `codegraph_explore`; if MCP is absent, use CLI `codegraph query` to find entry symbols, then inspect the top indexed files.
@@ -56,7 +151,7 @@ When asked to install, refresh, export, or pre-load Codegraph context for a work
 4. If the context is stale or incomplete, run Codegraph sync/status in the workspace and rerun the script.
 5. If external docs or tool metadata need refresh, run `scripts/download-codegraph-resources.js --workspace <workspace-root>` after confirming network access is allowed.
 
-The VS Code extension sync command installs the bundled skill into `codegraph_skills/`, `.agents/skills/`, `.claude/skills/`, `.codex/skills/`, and `.gemini/skills/` while preserving locally edited files. The context sync script writes a structured workspace cache under `codegraph_skills/context/` without modifying source code.
+The VS Code extension sync command installs the bundled skill into `codegraph_skills/`, `.agents/skills/`, `.claude/skills/`, `.codex/skills/`, `.gemini/skills/`, and `.cursor/skills/` in one action while preserving locally edited files. The context sync script writes a structured workspace cache under `codegraph_skills/context/` without modifying source code.
 
 ## Validation
 

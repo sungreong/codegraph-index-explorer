@@ -48,7 +48,7 @@ assert.match(html, /id="changelog"/);
 assert.match(html, /type: 'openChangelog'/);
 assert.match(html, /Refresh Codegraph status/);
 assert.match(html, /id="syncSkills"/);
-assert.match(html, /Sync bundled Codegraph agent skill into this workspace/);
+assert.match(html, /Install bundled Codegraph skills into codegraph_skills, \.agents\/skills, \.claude\/skills, \.codex\/skills, \.gemini\/skills, \.cursor\/skills/);
 assert.match(html, /\[hidden\] \{ display: none !important; \}/);
 assert.match(html, /Any kind/);
 assert.doesNotMatch(html, />All<\/button>/);

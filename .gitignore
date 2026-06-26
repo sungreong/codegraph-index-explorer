@@ -16,6 +16,7 @@ coverage/
 .claude/
 .codex/
 .gemini/
+.mps/
 
 # Generated packages and local release artifacts
 *.vsix

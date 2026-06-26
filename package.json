@@ -2,7 +2,7 @@
   "name": "codegraph-index-explorer",
   "displayName": "Codegraph Explorer",
   "description": "Explore existing .codegraph indexes in VS Code, inspect graph context, and copy agent-ready code locations.",
-  "version": "0.0.59",
+  "version": "0.0.61",
   "publisher": "datanewbie-labs",
   "icon": "resources/codegraph-index-explorer.png",
   "license": "MIT",
@@ -83,7 +83,7 @@
       },
       {
         "command": "codegraph.syncBundledSkills",
-        "title": "Codegraph: Sync Bundled Agent Skills"
+        "title": "Codegraph: Install Bundled Agent Skills"
       },
       {
         "command": "codegraph.showUpdateHistory",
