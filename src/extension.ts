@@ -11,7 +11,7 @@ import {
   queryCodegraph,
   resolveResultUri,
 } from "./codegraphCli";
-import { notifyCodegraphUpdate, openCodegraphChangelog } from "./codegraphChangelog";
+import { notifyCodegraphUpdate } from "./codegraphChangelog";
 import { CodegraphDashboardPanel } from "./codegraphPanel";
 import { CodegraphGraphPanel } from "./codegraphGraphPanel";
 import { CODEGRAPH_SKILL_TARGET_ROOTS, syncBundledCodegraphSkills } from "./codegraphSkills";
@@ -23,7 +23,6 @@ export function activate(context: vscode.ExtensionContext): void {
     context,
     () => openDashboard(context, sidebarView),
     () => openGraph(context),
-    () => openCodegraphChangelog(context),
   );
   const statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
   statusBarItem.text = "$(sync~spin) Codegraph";
@@ -41,7 +40,6 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("codegraph.listFiles", listIndexedFiles),
     vscode.commands.registerCommand("codegraph.refresh", () => refreshStatus(true)),
     vscode.commands.registerCommand("codegraph.syncBundledSkills", () => syncBundledSkills(context)),
-    vscode.commands.registerCommand("codegraph.showUpdateHistory", () => openCodegraphChangelog(context)),
     vscode.window.registerWebviewViewProvider("codegraph.actions", sidebarView, {
       webviewOptions: { retainContextWhenHidden: true },
     }),

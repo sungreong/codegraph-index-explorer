@@ -124,6 +124,17 @@ export function getGraphStyles(): string {
       font-size: 13px;
       line-height: 1;
     }
+    .graph-icon {
+      width: 15px;
+      height: 15px;
+      display: block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 1.85;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      vector-effect: non-scaling-stroke;
+    }
     .panel-toggle {
       min-height: 24px;
       padding: 2px 8px;
@@ -246,6 +257,10 @@ export function getGraphStyles(): string {
       border-color: var(--vscode-dropdown-border, var(--vscode-panel-border));
     }
     input:focus, select:focus, button:focus-visible, summary:focus-visible { border-color: var(--vscode-focusBorder); outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
+    input:disabled, select:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+    }
     button {
       min-height: 30px;
       border: 1px solid var(--vscode-button-border, transparent);
@@ -347,6 +362,10 @@ export function getGraphStyles(): string {
       min-width: 0;
       color: var(--vscode-descriptionForeground);
       font-weight: 700;
+    }
+    .menu-action span .graph-icon {
+      width: 14px;
+      height: 14px;
     }
     .advanced-panel label {
       display: grid;
@@ -557,6 +576,7 @@ export function getGraphStyles(): string {
       opacity: 0.72;
     }
     .mini-map circle.symbol { fill: var(--vscode-button-background); }
+    .mini-map circle.match { fill: var(--vscode-editorWarning-foreground); }
     .mini-map circle.file { fill: var(--vscode-badge-background); }
     .mini-map circle.directory { fill: var(--vscode-editorInfo-foreground); }
     .mini-map circle.selected { opacity: 1; stroke-width: 1.8; }
@@ -620,6 +640,7 @@ export function getGraphStyles(): string {
       background: var(--vscode-editorWidget-background);
     }
     .dot.symbol { background: var(--vscode-button-background); }
+    .dot.match { background: var(--vscode-editorWarning-foreground); }
     .dot.file { background: var(--vscode-badge-background); }
     .dot.directory { background: var(--vscode-editorInfo-foreground); }
     .graph-network {

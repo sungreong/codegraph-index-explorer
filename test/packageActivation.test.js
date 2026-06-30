@@ -17,7 +17,12 @@ assert.ok(
 assert.ok(manifest.activationEvents.includes("workspaceContains:.codegraph"));
 assert.ok(manifest.activationEvents.includes("onView:codegraph.actions"));
 assert.ok(!manifest.activationEvents.includes("onStartupFinished"));
+assert.ok(!manifest.activationEvents.includes("onCommand:codegraph.showUpdateHistory"));
 assert.equal(manifest.contributes.configuration.properties["codegraph.preloadOnActivation"].default, true);
+assert.equal(
+  manifest.contributes.commands.some((item) => item.command === "codegraph.showUpdateHistory"),
+  false,
+);
 
 const searchKeybinding = manifest.contributes.keybindings.find((item) => item.command === "codegraph.search");
 assert.equal(searchKeybinding.key, "ctrl+alt+g");

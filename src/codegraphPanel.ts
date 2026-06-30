@@ -9,8 +9,9 @@ import {
   getCodegraphImpact,
   getCodegraphStatus,
   listCodegraphFiles,
-  queryCodegraph,
   resolveResultUri,
+  searchCodegraphIndex,
+  CodegraphSearchMode,
 } from "./codegraphCli";
 import { getDashboardHtml } from "./dashboardHtml";
 import { CodegraphGraphPanel, GraphSeed } from "./codegraphGraphPanel";
@@ -33,7 +34,7 @@ interface DashboardState {
 
 type DashboardMessage =
   | { type: "ready" }
-  | { type: "search"; query?: string; kind?: string; mode?: "symbols" | "callers" | "callees" | "impact"; limit?: number; depth?: number; requestId?: number }
+  | { type: "search"; query?: string; kind?: string; mode?: CodegraphSearchMode; limit?: number; depth?: number; requestId?: number }
   | { type: "relationshipSummary"; symbol?: string; cacheKey?: string; limit?: number; depth?: number }
   | { type: "loadFiles"; filter?: string; pattern?: string; requestId?: number }
   | { type: "copyText"; text?: string; label?: string }
@@ -198,13 +199,7 @@ export class CodegraphDashboardPanel {
       const limit = normalizePositiveNumber(message.limit, vscode.workspace.getConfiguration("codegraph").get<number>("searchLimit") ?? 20);
       const depth = normalizePositiveNumber(message.depth, 2);
       const mode = message.mode ?? "symbols";
-      const results = mode === "symbols"
-        ? await queryCodegraph(this.state.workspacePath, query, limit, message.kind)
-        : mode === "callers"
-          ? await getCodegraphCallers(this.state.workspacePath, query, limit)
-          : mode === "callees"
-            ? await getCodegraphCallees(this.state.workspacePath, query, limit)
-            : await getCodegraphImpact(this.state.workspacePath, query, depth);
+      const results = await searchCodegraphIndex(this.state.workspacePath, query, mode, limit, message.kind, depth);
       if (requestId !== this.searchRequestId) {
         return;
       }
@@ -385,13 +380,21 @@ function normalizePositiveNumber(value: number | undefined, fallback: number): n
 function dashboardCommandPreview(
   workspacePath: string,
   query: string,
-  mode: "symbols" | "callers" | "callees" | "impact",
+  mode: CodegraphSearchMode,
   kind: string | undefined,
   limit: number,
   depth: number,
 ): string {
   if (mode === "symbols") {
     return ["codegraph", "query", "--json", "--path", workspacePath, "--limit", String(limit), kind ? `--kind ${kind}` : "", query].filter(Boolean).join(" ");
+  }
+
+  if (mode === "text") {
+    return ["Codegraph indexed text search", "--workspace", workspacePath, "--limit", String(limit), query].join(" ");
+  }
+
+  if (mode === "files") {
+    return ["codegraph", "files", "--json", "--path", workspacePath, "--format", "flat", "--filter", query, "--limit", String(limit)].join(" ");
   }
 
   if (mode === "impact") {

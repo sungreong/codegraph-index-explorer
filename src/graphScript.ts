@@ -1,11 +1,13 @@
 import { getGraphCoreScript } from "./graphCoreScript";
 import { getGraphInteractionScript } from "./graphInteractionScript";
 import { getGraphUtilityScript } from "./graphUtilityScript";
+import { webviewIconScript } from "./webviewIcons";
 
 export function getGraphScript(): string {
   return `
     const vscode = acquireVsCodeApi();
     const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    ${webviewIconScript()}
     const state = {
       workspacePath: '',
       indexUpdatedAt: 0,
@@ -100,9 +102,11 @@ export function getGraphScript(): string {
       requestGraphData();
     });
     els.source.addEventListener('change', () => {
+      syncGraphControls();
       resetSelection(true);
       requestGraphData();
     });
+    els.mode.addEventListener('change', syncGraphControls);
     els.layout.addEventListener('change', render);
     els.depthMode.addEventListener('change', updateNetworkOptions);
     els.spacingMode.addEventListener('change', updateNetworkOptions);
@@ -232,6 +236,17 @@ export function getGraphScript(): string {
         setHelpOpen(true);
         return;
       }
+      if (action === 'file-structure') {
+        els.source.value = 'files';
+        els.query.value = '';
+        resetSelection(true);
+        requestGraphData();
+        return;
+      }
+      if (action === 'refresh-graph') {
+        refreshCurrentGraph();
+        return;
+      }
       if (action === 'clear-filters') {
         clearGraphFilters();
       }
@@ -262,6 +277,7 @@ export function getGraphScript(): string {
         state.workspacePath = message.workspacePath || '';
         state.indexUpdatedAt = Number(message.indexUpdatedAt) || 0;
         els.workspace.textContent = message.workspaceName ? message.workspaceName + ' | ' + message.workspacePath : 'No Codegraph workspace';
+        syncGraphControls();
         updateIndexFreshness();
         applyInitialGraph(message.initialGraph);
       }
@@ -327,6 +343,7 @@ export function getGraphScript(): string {
     }
 
     function requestGraphData(trackActivity, force) {
+      syncGraphControls();
       if (trackActivity !== false) { recordActivity('loading', 'Requesting ' + graphRequestLabel()); }
       if (els.source.value === 'files') {
         vscode.postMessage({ type: 'loadFiles', filter: els.query.value.trim(), pattern: els.filePattern.value.trim(), force: Boolean(force) });
@@ -346,6 +363,26 @@ export function getGraphScript(): string {
         depth: 2,
         force: Boolean(force)
       });
+    }
+
+    function syncGraphControls() {
+      const fileSource = els.source.value === 'files';
+      const mode = els.mode.value;
+      const placeholders = {
+        symbols: 'Search symbols...',
+        text: 'Search text in indexed files...',
+        files: 'Search file names or paths...',
+        callers: 'Find callers for symbol...',
+        callees: 'Find callees for symbol...',
+        impact: 'Find impact for symbol...'
+      };
+      els.query.placeholder = fileSource ? 'Filter indexed file paths...' : (placeholders[mode] || 'Search graph...');
+      els.mode.disabled = fileSource;
+      els.mode.title = fileSource ? 'Search mode is used with Search graph' : 'Search graph mode';
+      els.kind.disabled = fileSource || mode !== 'symbols';
+      els.kind.title = !fileSource && mode === 'symbols' ? 'Filter symbol kind' : 'Kind filter only applies to Symbols';
+      els.filePattern.disabled = !fileSource;
+      els.filePattern.title = fileSource ? 'File pattern' : 'Pattern only applies to File structure';
     }
 
     function refreshCurrentGraph() {
@@ -501,6 +538,7 @@ export function getGraphScript(): string {
       if (seed.mode) { setSelectValue(els.mode, seed.mode); }
       if (seed.kind) { setSelectValue(els.kind, seed.kind); }
       if (seed.limit) { setSelectValue(els.limit, String(seed.limit)); }
+      syncGraphControls();
       announceGraphSeed(seed);
       requestGraphData();
     }
@@ -675,6 +713,7 @@ export function getGraphScript(): string {
     updateClusterButton();
     updateLimitDownButton();
     updateIndexFreshness();
+    syncGraphControls();
     vscode.postMessage({ type: 'ready' });
   `;
 }

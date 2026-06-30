@@ -10,8 +10,9 @@ import {
   getCodegraphCallers,
   getCodegraphImpact,
   listCodegraphFiles,
-  queryCodegraph,
   resolveResultUri,
+  searchCodegraphIndex,
+  CodegraphSearchMode,
 } from "./codegraphCli";
 import { getGraphHtml } from "./graphHtml";
 
@@ -34,7 +35,7 @@ export interface GraphSeed {
   query?: string;
   pattern?: string;
   kind?: string;
-  mode?: "symbols" | "callers" | "callees" | "impact";
+  mode?: CodegraphSearchMode;
   limit?: number;
   depth?: number;
 }
@@ -42,7 +43,7 @@ export interface GraphSeed {
 type GraphMessage =
   | { type: "ready" }
   | { type: "loadFiles"; filter?: string; pattern?: string; force?: boolean }
-  | { type: "search"; query?: string; kind?: string; mode?: "symbols" | "callers" | "callees" | "impact"; limit?: number; depth?: number; force?: boolean }
+  | { type: "search"; query?: string; kind?: string; mode?: CodegraphSearchMode; limit?: number; depth?: number; force?: boolean }
   | { type: "expandNode"; query?: string; mode?: "callers" | "callees" | "impact"; sourceId?: string; graphRequestId?: number; limit?: number; depth?: number }
   | { type: "saveGraphPng"; dataUrl?: string; fileName?: string }
   | { type: "saveGraphJson"; data?: unknown; fileName?: string }
@@ -224,13 +225,7 @@ export class CodegraphGraphPanel {
       }
 
       this.panel.webview.postMessage({ type: "loading", requestId, message: `${message.force ? "Refreshing" : "Loading"} ${mode} graph for "${query}"...` });
-      const results = mode === "symbols"
-        ? await queryCodegraph(this.state.workspacePath, query, limit, message.kind)
-        : mode === "callers"
-          ? await getCodegraphCallers(this.state.workspacePath, query, limit)
-          : mode === "callees"
-          ? await getCodegraphCallees(this.state.workspacePath, query, limit)
-          : await getCodegraphImpact(this.state.workspacePath, query, depth);
+      const results = await searchCodegraphIndex(this.state.workspacePath, query, mode, limit, message.kind, depth);
       if (requestId !== this.graphRequestId) {
         return;
       }

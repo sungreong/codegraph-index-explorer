@@ -1,6 +1,7 @@
 import { getGraphScript } from "./graphScript";
 import { getGraphStyles } from "./graphStyles";
 import { getVisNetworkScript } from "./visNetworkAsset";
+import { webviewIcon } from "./webviewIcons";
 
 export function getGraphHtml(nonce: string): string {
   return `<!DOCTYPE html>
@@ -25,7 +26,7 @@ export function getGraphHtml(nonce: string): string {
         <button class="panel-toggle" id="toggleControls" type="button" title="Hide graph controls" aria-label="Hide graph controls" aria-expanded="true">Controls</button>
         <button class="panel-toggle" id="toggleDetailsTop" type="button" title="Show details" aria-label="Show details" aria-expanded="false">Details</button>
         <button class="activity-strip" id="graphActivity" type="button" title="Show graph activity" aria-label="Show graph activity">No graph loaded</button>
-        <button class="activity-refresh" id="refreshGraphActivity" type="button" title="Refresh graph data" aria-label="Refresh graph data">↻</button>
+        <button class="activity-refresh" id="refreshGraphActivity" type="button" title="Refresh graph data" aria-label="Refresh graph data">${graphIcon("refresh")}</button>
         <div class="activity-panel" id="activityPanel" hidden>
           <div class="activity-panel-head">
             <strong>Graph activity</strong>
@@ -36,7 +37,7 @@ export function getGraphHtml(nonce: string): string {
       </div>
     </header>
     <form class="controls" id="graphForm">
-      <input id="query" type="search" placeholder="Search symbol or filter files..." autocomplete="off">
+      <input id="query" type="search" placeholder="Filter indexed file paths..." autocomplete="off">
       <div class="quick-selects">
         <select id="source" title="Graph source">
           <option value="files" selected>File structure</option>
@@ -44,40 +45,42 @@ export function getGraphHtml(nonce: string): string {
         </select>
         <select id="mode" title="Search mode">
           <option value="symbols">Symbols</option>
+          <option value="text">Text in files</option>
+          <option value="files">File names</option>
           <option value="callers">Callers</option>
           <option value="callees">Callees</option>
           <option value="impact">Impact</option>
         </select>
       </div>
       <div class="icon-actions" aria-label="Graph actions">
-        <button class="icon-button primary" type="submit" title="Render" aria-label="Render">▶</button>
-        <button class="icon-button ghost" id="stepLimitDown" type="button" title="Show fewer nodes" aria-label="Show fewer nodes">−</button>
-        <button class="icon-button ghost" id="resetView" type="button" title="Reset view" aria-label="Reset view">↺</button>
-        <button class="icon-button ghost" id="fitView" type="button" title="Fit view" aria-label="Fit view">⌖</button>
-        <button class="icon-button ghost" id="toggleFocus" type="button" title="Focus only" aria-label="Focus only">◉</button>
-        <button class="icon-button ghost" id="clearFocus" type="button" title="Clear focus" aria-label="Clear focus">×</button>
-        <button class="icon-button ghost" id="toggleDetails" type="button" title="Show details" aria-label="Show details">▤</button>
+        <button class="icon-button primary" type="submit" title="Render graph" aria-label="Render graph">${graphIcon("play")}</button>
+        <button class="icon-button ghost" id="fitView" type="button" title="Fit view" aria-label="Fit view">${graphIcon("fit")}</button>
+        <button class="icon-button ghost" id="toggleDetails" type="button" title="Show details" aria-label="Show details">${graphIcon("info")}</button>
         <details class="action-menu" id="viewActions">
           <summary class="menu-button ghost" title="View actions" aria-label="View actions">View</summary>
           <div class="action-menu-panel">
-            <button class="ghost menu-action" id="toggleMotion" type="button" title="Start motion" aria-label="Start motion"><span>⏵</span>Motion</button>
-            <button class="ghost menu-action" id="toggleOrbit" type="button" title="Start orbit" aria-label="Start orbit"><span>◎</span>Orbit</button>
-            <button class="ghost menu-action" id="toggleLegend" type="button" title="Show legend" aria-label="Show legend"><span>◌</span>Legend</button>
-            <button class="ghost menu-action" id="toggleMiniMap" type="button" title="Show minimap" aria-label="Show minimap"><span>▧</span>Minimap</button>
-            <button class="ghost menu-action" id="toggleClusters" type="button" title="Hide cluster regions" aria-label="Hide cluster regions"><span>▦</span>Clusters</button>
-            <button class="ghost menu-action" id="toggleHelp" type="button" title="Show shortcuts and gestures" aria-label="Show shortcuts and gestures"><span>?</span>Shortcuts</button>
+            <button class="ghost menu-action" id="resetView" type="button" title="Reset view" aria-label="Reset view"><span>${graphIcon("refresh")}</span>Reset view</button>
+            <button class="ghost menu-action" id="stepLimitDown" type="button" title="Show fewer nodes" aria-label="Show fewer nodes"><span>${graphIcon("minus")}</span>Fewer nodes</button>
+            <button class="ghost menu-action" id="toggleFocus" type="button" title="Focus only" aria-label="Focus only"><span>${graphIcon("target")}</span>Focus</button>
+            <button class="ghost menu-action" id="clearFocus" type="button" title="Clear focus" aria-label="Clear focus"><span>${graphIcon("x")}</span>Clear focus</button>
+            <button class="ghost menu-action" id="toggleMotion" type="button" title="Start motion" aria-label="Start motion"><span>${graphIcon("play")}</span>Motion</button>
+            <button class="ghost menu-action" id="toggleOrbit" type="button" title="Start orbit" aria-label="Start orbit"><span>${graphIcon("circle")}</span>Orbit</button>
+            <button class="ghost menu-action" id="toggleLegend" type="button" title="Show legend" aria-label="Show legend"><span>${graphIcon("list")}</span>Legend</button>
+            <button class="ghost menu-action" id="toggleMiniMap" type="button" title="Show minimap" aria-label="Show minimap"><span>${graphIcon("layout")}</span>Minimap</button>
+            <button class="ghost menu-action" id="toggleClusters" type="button" title="Hide cluster regions" aria-label="Hide cluster regions"><span>${graphIcon("graph")}</span>Clusters</button>
+            <button class="ghost menu-action" id="toggleHelp" type="button" title="Show shortcuts and gestures" aria-label="Show shortcuts and gestures"><span>${graphIcon("info")}</span>Shortcuts</button>
           </div>
         </details>
         <details class="action-menu" id="exportActions">
           <summary class="menu-button ghost" title="Export and copy" aria-label="Export and copy">Export</summary>
           <div class="action-menu-panel">
-            <button class="ghost menu-action" id="exportPng" type="button" title="Export PNG" aria-label="Export PNG"><span>⇩</span>PNG</button>
-            <button class="ghost menu-action" id="exportJson" type="button" title="Export graph JSON" aria-label="Export graph JSON"><span>{}</span>JSON</button>
-            <button class="ghost menu-action" id="copyMarkdown" type="button" title="Copy graph summary as Markdown" aria-label="Copy graph summary as Markdown"><span>MD</span>Markdown</button>
+            <button class="ghost menu-action" id="exportPng" type="button" title="Export PNG" aria-label="Export PNG"><span>${graphIcon("download")}</span>PNG</button>
+            <button class="ghost menu-action" id="exportJson" type="button" title="Export graph JSON" aria-label="Export graph JSON"><span>${graphIcon("fileJson")}</span>JSON</button>
+            <button class="ghost menu-action" id="copyMarkdown" type="button" title="Copy graph summary as Markdown" aria-label="Copy graph summary as Markdown"><span>${graphIcon("copy")}</span>Markdown</button>
           </div>
         </details>
         <details class="advanced-controls" id="advancedControls">
-          <summary class="icon-button ghost" title="Graph options" aria-label="Graph options">⚙</summary>
+          <summary class="icon-button ghost" title="Graph options" aria-label="Graph options">${graphIcon("settings")}</summary>
           <div class="advanced-panel">
             <label><span>Kind</span>
         <select id="kind" title="Symbol kind">
@@ -145,6 +148,7 @@ export function getGraphHtml(nonce: string): string {
         <div class="legend">
           <span><i class="dot root"></i>Root</span>
           <span><i class="dot symbol"></i>Symbol</span>
+          <span><i class="dot match"></i>Text match</span>
           <span><i class="dot file"></i>File</span>
           <span><i class="dot directory"></i>Directory</span>
         </div>
@@ -156,7 +160,7 @@ export function getGraphHtml(nonce: string): string {
         <div class="shortcut-overlay" id="shortcutOverlay" role="dialog" aria-label="Shortcuts and gestures" hidden>
           <div class="shortcut-head">
             <strong>Shortcuts & gestures</strong>
-            <button class="icon-button ghost" id="closeHelp" type="button" title="Close help" aria-label="Close help">×</button>
+            <button class="icon-button ghost" id="closeHelp" type="button" title="Close help" aria-label="Close help">${graphIcon("x")}</button>
           </div>
           <div class="shortcut-grid">
             <span>/</span><p>Focus search</p>
@@ -184,6 +188,10 @@ export function getGraphHtml(nonce: string): string {
   <script nonce="${escapeAttribute(nonce)}">${escapeScriptContent(getGraphScript())}</script>
 </body>
 </html>`;
+}
+
+function graphIcon(name: Parameters<typeof webviewIcon>[0]): string {
+  return webviewIcon(name, "graph-icon");
 }
 
 function escapeAttribute(value: string): string {

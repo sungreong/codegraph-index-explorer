@@ -23,7 +23,7 @@ Module._load = function load(request, parent, isMain) {
 const { CodegraphSidebarView } = require("../out/codegraphSidebarView");
 
 let html = "";
-const view = new CodegraphSidebarView({ subscriptions: [] }, () => undefined, () => undefined, () => undefined);
+const view = new CodegraphSidebarView({ subscriptions: [] }, () => undefined, () => undefined);
 view.resolveWebviewView({
   webview: {
     set options(value) {},
@@ -43,12 +43,17 @@ assert.match(html, /Copy agent prompt for selected results, or all results if no
 assert.match(html, /Select all visible results/);
 assert.match(html, /Open dashboard/);
 assert.match(html, /Open graph explorer/);
-assert.match(html, /Show update history/);
-assert.match(html, /id="changelog"/);
-assert.match(html, /type: 'openChangelog'/);
+assert.doesNotMatch(html, /Show update history/);
+assert.doesNotMatch(html, /id="changelog"/);
+assert.doesNotMatch(html, /type: 'openChangelog'/);
 assert.match(html, /Refresh Codegraph status/);
 assert.match(html, /id="syncSkills"/);
 assert.match(html, /Install bundled Codegraph skills into codegraph_skills, \.agents\/skills, \.claude\/skills, \.codex\/skills, \.gemini\/skills, \.cursor\/skills/);
+assert.match(html, /result-actions/);
+assert.match(html, /workspace-actions/);
+assert.match(html, /Find code in seconds/);
+assert.match(html, /Try search: extension/);
+assert.match(html, /Open file structure graph/);
 assert.match(html, /\[hidden\] \{ display: none !important; \}/);
 assert.match(html, /Any kind/);
 assert.doesNotMatch(html, />All<\/button>/);

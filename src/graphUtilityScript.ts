@@ -87,9 +87,13 @@ export function getGraphUtilityScript(): string {
 
     function emptyStateActions() {
       const actions = [{ action: 'focus-search', label: 'Focus search' }];
+      if (els.source.value !== 'files') {
+        actions.push({ action: 'file-structure', label: 'Browse indexed files' });
+      }
       if (els.query.value || els.kind.value || els.filePattern.value) {
         actions.push({ action: 'clear-filters', label: 'Clear filters' });
       }
+      actions.push({ action: 'refresh-graph', label: 'Refresh' });
       actions.push({ action: 'show-shortcuts', label: 'Shortcuts' });
       return actions;
     }
@@ -111,19 +115,19 @@ export function getGraphUtilityScript(): string {
 
     function updateMotionButton() {
       document.body.classList.toggle('motion-on', state.motion);
-      setButtonContent(els.toggleMotion, state.motion ? '⏸' : '⏵', 'Motion');
+      setButtonContent(els.toggleMotion, state.motion ? 'pause' : 'play', 'Motion');
       els.toggleMotion.title = state.motion ? 'Pause physics' : 'Start physics';
       els.toggleMotion.setAttribute('aria-label', els.toggleMotion.title);
     }
 
     function updateOrbitButton() {
-      setButtonContent(els.toggleOrbit, state.orbit ? '◍' : '◎', 'Orbit');
+      setButtonContent(els.toggleOrbit, state.orbit ? 'focus' : 'circle', 'Orbit');
       els.toggleOrbit.title = state.orbit ? 'Curved layout on' : 'Curved layout off';
       els.toggleOrbit.setAttribute('aria-label', els.toggleOrbit.title);
     }
 
     function updateFocusButton() {
-      els.toggleFocus.textContent = state.focusOnly ? '◐' : '◉';
+      setButtonContent(els.toggleFocus, state.focusOnly ? 'focus' : 'target', 'Focus');
       els.toggleFocus.title = state.focusOnly ? 'Show all nodes' : 'Focus only';
       els.toggleFocus.setAttribute('aria-label', els.toggleFocus.title);
     }
@@ -162,7 +166,7 @@ export function getGraphUtilityScript(): string {
     }
 
     function updateDetailsButton() {
-      els.toggleDetails.textContent = state.detailsOpen ? '▥' : '▤';
+      setButtonContent(els.toggleDetails, state.detailsOpen ? 'x' : 'info', 'Details');
       els.toggleDetails.title = state.detailsOpen ? 'Hide details' : 'Show details';
       els.toggleDetails.setAttribute('aria-label', els.toggleDetails.title);
       els.toggleDetails.setAttribute('aria-expanded', String(state.detailsOpen));
@@ -186,13 +190,13 @@ export function getGraphUtilityScript(): string {
     }
 
     function updateLegendButton() {
-      setButtonContent(els.toggleLegend, state.legendOpen ? '●' : '◌', 'Legend');
+      setButtonContent(els.toggleLegend, state.legendOpen ? 'checkSquare' : 'list', 'Legend');
       els.toggleLegend.title = state.legendOpen ? 'Hide legend' : 'Show legend';
       els.toggleLegend.setAttribute('aria-label', els.toggleLegend.title);
     }
 
     function updateMiniMapButton() {
-      setButtonContent(els.toggleMiniMap, state.miniMapOpen ? '▣' : '▧', 'Minimap');
+      setButtonContent(els.toggleMiniMap, state.miniMapOpen ? 'checkSquare' : 'layout', 'Minimap');
       els.toggleMiniMap.title = state.miniMapOpen ? 'Hide minimap' : 'Show minimap';
       els.toggleMiniMap.setAttribute('aria-label', els.toggleMiniMap.title);
     }
@@ -210,18 +214,18 @@ export function getGraphUtilityScript(): string {
 
     function updateClusterButton() {
       if (!els.toggleClusters) { return; }
-      setButtonContent(els.toggleClusters, state.clusterOverlayOpen ? '▦' : '□', 'Clusters');
+      setButtonContent(els.toggleClusters, state.clusterOverlayOpen ? 'graph' : 'circle', 'Clusters');
       els.toggleClusters.title = state.clusterOverlayOpen ? 'Hide cluster regions' : 'Show cluster regions';
       els.toggleClusters.setAttribute('aria-label', els.toggleClusters.title);
     }
 
-    function setButtonContent(button, icon, label) {
+    function setButtonContent(button, iconName, label) {
       const isMenuAction = Boolean(button && button.classList && button.classList.contains && button.classList.contains('menu-action'));
       if (isMenuAction) {
-        button.innerHTML = '<span>' + escapeHtml(icon) + '</span>' + escapeHtml(label);
+        button.innerHTML = '<span>' + webviewIcon(iconName, 'graph-icon') + '</span>' + escapeHtml(label);
         return;
       }
-      button.textContent = icon;
+      button.innerHTML = webviewIcon(iconName, 'graph-icon');
     }
 
     function updateLimitDownButton() {
@@ -321,6 +325,8 @@ export function getGraphUtilityScript(): string {
       if (mode === 'callers') { return counts.symbol + ' caller symbols point into the query'; }
       if (mode === 'callees') { return 'query points to ' + counts.symbol + ' called symbols'; }
       if (mode === 'impact') { return counts.symbol + ' symbols in the impact radius'; }
+      if (mode === 'text') { return (counts.match || 0) + ' text matches mapped to ' + counts.file + ' files'; }
+      if (mode === 'files') { return counts.directory + ' dirs | ' + counts.file + ' matching files'; }
       return counts.symbol + ' matching symbols mapped to ' + counts.file + ' files';
     }
 
@@ -340,6 +346,8 @@ export function getGraphUtilityScript(): string {
       if (mode === 'callers') { return 'Who calls ' + query; }
       if (mode === 'callees') { return 'What ' + query + ' calls'; }
       if (mode === 'impact') { return 'Impact radius for ' + query; }
+      if (mode === 'text') { return 'Text matches for ' + query; }
+      if (mode === 'files') { return 'Files matching ' + query; }
       return 'Search matches for ' + query;
     }
 
@@ -347,7 +355,7 @@ export function getGraphUtilityScript(): string {
       return graph.nodes.reduce((counts, node) => {
         counts[node.type] = (counts[node.type] || 0) + 1;
         return counts;
-      }, { root: 0, symbol: 0, file: 0, directory: 0, more: 0 });
+      }, { root: 0, symbol: 0, match: 0, file: 0, directory: 0, more: 0 });
     }
 
     function topConnectedNodes(graph, limit) {
@@ -385,6 +393,9 @@ export function getGraphUtilityScript(): string {
       }
       if (node.type === 'symbol') {
         return 'This symbol has ' + visibleNeighborCount.toLocaleString() + ' visible neighbors. Add callers/callees/impact to turn this point into a local exploration map.';
+      }
+      if (node.type === 'match') {
+        return 'This text match is connected to the file where it appears. Open it to jump to the matching line.';
       }
       if (node.type === 'file') {
         return 'This file anchors related symbols on disk. Open it when the graph shows this file as a hub or repeated destination.';
@@ -445,6 +456,27 @@ export function getGraphUtilityScript(): string {
       const raw = node.raw || {};
       if (raw.file) { vscode.postMessage({ type: 'openResult', item: raw }); return; }
       if (node.type === 'file' && raw.path) { vscode.postMessage({ type: 'openFile', item: raw }); }
+    }
+
+    async function copyNodeLocation(node) {
+      const text = nodeLocationText(node);
+      if (!text) {
+        els.graphStats.textContent = 'Nothing to copy for this node';
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        els.graphStats.textContent = 'Copied node location | ' + trimLabel(text, 72);
+      } catch (error) {
+        els.graphStats.textContent = 'Copy failed | clipboard unavailable';
+      }
+    }
+
+    function nodeLocationText(node) {
+      const raw = node && node.raw || {};
+      const value = raw.file || raw.path || raw.filePath || raw.relativePath || '';
+      if (!value) { return node && node.label ? node.label : ''; }
+      return value + (raw.line ? ':' + raw.line : '') + (raw.column ? ':' + raw.column : '');
     }
 
     function canOpenNode(node) {

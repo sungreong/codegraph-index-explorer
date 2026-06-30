@@ -218,19 +218,32 @@ export function getGraphCoreScript(): string {
         addOmittedNode(root, files.length - rendered.length, 'files', addNode, addEdge, 1);
         return { nodes, edges, total: files.length, rendered: rendered.length, omitted: Math.max(files.length - rendered.length, 0) };
       }
-      if (els.mode.value !== 'symbols') {
+      if (els.mode.value === 'files') {
+        return buildSearchFileGraph(addNode, addEdge, nodes, edges, limit);
+      }
+      if (els.mode.value === 'callers' || els.mode.value === 'callees' || els.mode.value === 'impact') {
         return buildRelationshipGraph(addNode, addEdge, nodes, edges, limit);
       }
-      const root = addNode('root:search', els.query.value.trim() || 'Search', 'root', { mode: 'symbols' }, 0);
+      const root = addNode('root:search', els.query.value.trim() || 'Search', 'root', { mode: els.mode.value }, 0);
       const results = state.results || [];
       const rendered = results.slice(0, limit);
       rendered.forEach((item) => {
-        const symbol = addNode('symbol:' + (item.name || item.file) + ':' + (item.line || ''), item.name || item.file, 'symbol', item, 1);
+        const matchType = els.mode.value === 'text' || item.kind === 'text' ? 'match' : 'symbol';
+        const symbol = addNode(matchType + ':' + (item.name || item.file) + ':' + (item.line || '') + ':' + (item.column || ''), item.name || item.file, matchType, item, 1);
         const file = addNode('file:' + (item.file || item.path), basename(item.file || item.path), 'file', item, 2);
         addEdge(root, symbol);
         addEdge(symbol, file);
       });
       addOmittedNode(root, results.length - rendered.length, 'results', addNode, addEdge, 1);
+      return { nodes, edges, total: results.length, rendered: rendered.length, omitted: Math.max(results.length - rendered.length, 0) };
+    }
+
+    function buildSearchFileGraph(addNode, addEdge, nodes, edges, limit) {
+      const root = addNode('root:file-search', els.query.value.trim() || 'Matching files', 'root', { mode: 'files' }, 0);
+      const results = state.results || [];
+      const rendered = results.slice(0, limit);
+      rendered.forEach((item) => addFilePath(root, { path: item.file || item.path, language: item.language, symbols: item.symbols, ...item }, addNode, addEdge));
+      addOmittedNode(root, results.length - rendered.length, 'files', addNode, addEdge, 1);
       return { nodes, edges, total: results.length, rendered: rendered.length, omitted: Math.max(results.length - rendered.length, 0) };
     }
 
@@ -283,7 +296,7 @@ export function getGraphCoreScript(): string {
       const colors = nodeColors(node);
       const secondary = Boolean(node.raw && node.raw.secondary);
       const hub = state.hubIds && state.hubIds.has(node.id);
-      const baseSize = secondary ? 10 : node.type === 'root' ? 24 : node.type === 'directory' ? 18 : node.type === 'symbol' ? 16 : node.type === 'more' ? 16 : 13;
+      const baseSize = secondary ? 10 : node.type === 'root' ? 24 : node.type === 'directory' ? 18 : node.type === 'symbol' ? 16 : node.type === 'match' ? 15 : node.type === 'more' ? 16 : 13;
       return {
         id: node.id,
         label: trimLabel(node.label, 32),
@@ -318,6 +331,9 @@ export function getGraphCoreScript(): string {
       }
       if (type === 'symbol') {
         return { background: flowColor || state.theme.symbol, border: state.theme.flowCyan, highlight: { background: flowColor || state.theme.symbol, border: state.theme.flowCyan } };
+      }
+      if (type === 'match') {
+        return { background: flowColor || state.theme.flowHot, border: state.theme.warning || state.theme.flowHot, highlight: { background: flowColor || state.theme.flowHot, border: state.theme.warning || state.theme.flowHot } };
       }
       if (type === 'directory') {
         return { background: flowColor || state.theme.directory, border: state.theme.flowGreen, highlight: { background: flowColor || state.theme.directory, border: state.theme.flowGreen } };

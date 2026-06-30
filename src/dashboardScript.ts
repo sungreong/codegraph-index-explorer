@@ -53,6 +53,7 @@ export function getDashboardScript(): string {
       element.addEventListener('input', () => { renderCommandPreview(); persistDashboardState(); });
       element.addEventListener('change', () => { renderCommandPreview(); persistDashboardState(); });
     });
+    els.modeFilter.addEventListener('change', syncSearchControls);
     els.fileFilter.addEventListener('change', () => { state.filePage = 1; loadFilesFromCodegraph(); });
     els.filePattern.addEventListener('change', () => { state.filePage = 1; loadFilesFromCodegraph(); });
     els.filesPrev.addEventListener('click', () => { state.filePage = Math.max(1, state.filePage - 1); renderFiles(); });
@@ -67,6 +68,26 @@ export function getDashboardScript(): string {
     els.copySelectedLocations.addEventListener('click', () => copySelectedResults('locations'));
     els.copyAgentPrompt.addEventListener('click', () => copySelectedResults('prompt'));
     els.agentQuestion.addEventListener('input', persistDashboardState);
+    document.addEventListener('click', (event) => {
+      const actionButton = event.target && event.target.closest ? event.target.closest('[data-dashboard-action]') : null;
+      if (!actionButton) { return; }
+      const action = actionButton.dataset.dashboardAction || '';
+      if (action === 'sample-search') {
+        els.query.value = actionButton.dataset.query || 'Codegraph';
+        renderCommandPreview();
+        const requestId = ++state.searchRequestId;
+        setSearchLoading(els.query.value.trim());
+        vscode.postMessage(searchPayload(els.query.value.trim(), requestId));
+      }
+      if (action === 'file-graph') {
+        vscode.postMessage({ type: 'openGraph', source: 'files', query: els.fileFilter.value.trim(), pattern: els.filePattern.value.trim(), limit: Number(els.limitInput.value) || 80 });
+      }
+      if (action === 'load-files') {
+        state.filePage = 1;
+        loadFilesFromCodegraph();
+        activateTab('files');
+      }
+    });
     restoreDashboardInputs();
     persistDashboardState();
     els.query.addEventListener('keydown', (event) => {
@@ -130,7 +151,7 @@ export function getDashboardScript(): string {
       els.filesMetric.textContent = formatNumber(state.status && state.status.fileCount);
       els.nodesMetric.textContent = formatNumber(state.status && state.status.nodeCount);
       els.edgesMetric.textContent = formatNumber(state.status && state.status.edgeCount);
-      setError(els.fileError, state.error); renderFiles(); renderResults(); renderContext(); renderCommandPreview();
+      setError(els.fileError, state.error); renderFiles(); renderResults(); renderContext(); renderCommandPreview(); syncSearchControls();
       if (state.activeTab) { activateTab(state.activeTab); }
     }
     function activateTab(name) {
@@ -156,6 +177,7 @@ export function getDashboardScript(): string {
       return { type: 'openGraph', source: 'files', query: els.fileFilter.value.trim(), pattern: els.filePattern.value.trim(), limit: Number(els.limitInput.value) || 80 };
     }
     function renderCommandPreview() {
+      syncSearchControls();
       const query = els.query.value.trim() || '<query>';
       const mode = els.modeFilter.value;
       const limit = Number(els.limitInput.value) || 20;
@@ -163,10 +185,30 @@ export function getDashboardScript(): string {
       const kind = els.kindFilter.value;
       const command = mode === 'symbols'
         ? ['codegraph', 'query', '--json', '--path', '<workspace>', '--limit', limit, kind ? '--kind ' + kind : '', query].filter(Boolean).join(' ')
+        : mode === 'text'
+          ? ['Codegraph indexed text search', '--workspace', '<workspace>', '--limit', limit, query].join(' ')
+          : mode === 'files'
+            ? ['codegraph', 'files', '--json', '--path', '<workspace>', '--format', 'flat', '--filter', query, '--limit', limit].join(' ')
         : mode === 'impact'
           ? ['codegraph', 'impact', '--json', '--path', '<workspace>', '--depth', depth, query].join(' ')
           : ['codegraph', mode, '--json', '--path', '<workspace>', '--limit', limit, query].join(' ');
       els.commandPreview.textContent = command;
+    }
+    function syncSearchControls() {
+      const mode = els.modeFilter.value;
+      const placeholders = {
+        symbols: 'Search symbols...',
+        text: 'Search text in indexed files...',
+        files: 'Search file names or paths...',
+        callers: 'Find callers for symbol...',
+        callees: 'Find callees for symbol...',
+        impact: 'Find impact for symbol...'
+      };
+      els.query.placeholder = placeholders[mode] || 'Search Codegraph...';
+      els.kindFilter.disabled = mode !== 'symbols';
+      els.kindFilter.title = mode === 'symbols' ? 'Filter symbol kind' : 'Kind filter only applies to Symbols';
+      els.depthInput.disabled = mode !== 'impact';
+      els.depthInput.title = mode === 'impact' ? 'Impact depth' : 'Depth only applies to Impact';
     }
     function renderFiles() {
       const files = state.files || [];
@@ -174,7 +216,12 @@ export function getDashboardScript(): string {
       state.filePage = page.page; els.filesCount.textContent = (state.filesLoading ? 'Loading... | ' : '') + files.length.toLocaleString() + ' files'; els.filesPage.textContent = page.page + ' / ' + page.totalPages;
       els.filesJump.max = String(page.totalPages); els.filesJump.value = String(page.page); els.filesPrev.disabled = page.page <= 1; els.filesNext.disabled = page.page >= page.totalPages;
       renderPageNumbers(els.filesNumbers, page.page, page.totalPages, (nextPage) => { state.filePage = nextPage; renderFiles(); });
-      if (files.length === 0) { els.files.innerHTML = '<div class="empty">' + (state.filesLoading ? 'Loading files from Codegraph...' : 'No indexed files match the current filter.') + '</div>'; return; }
+      if (files.length === 0) {
+        els.files.innerHTML = state.filesLoading
+          ? '<div class="empty"><strong>Loading indexed files...</strong><p>Reading Codegraph file metadata for this workspace.</p></div>'
+          : '<div class="empty"><strong>No indexed files match this filter.</strong><p>Clear the directory or pattern filter, or open the full file graph to inspect the current index.</p><div class="empty-actions"><button class="ghost" type="button" data-dashboard-action="file-graph">Open file structure graph</button></div></div>';
+        return;
+      }
       els.files.innerHTML = page.items.map((file, index) => rowHtml({ title: file.path, detail: [file.language, typeof file.symbols === 'number' ? file.symbols + ' symbols' : undefined].filter(Boolean).join(' | '), badge: file.language || 'file', action: 'openFile', index, preview: true })).join('');
       wireRows(els.files, page.items, 'openFile');
       persistDashboardState();
@@ -192,12 +239,14 @@ export function getDashboardScript(): string {
       });
       if (!state.results || state.results.length === 0) {
         state.visibleResults = [];
-        els.results.innerHTML = '<div class="empty">' + (state.searchLoading ? 'Searching Codegraph...' : 'Search Codegraph symbols, inspect matches, and open exact locations.') + '</div>';
+        els.results.innerHTML = state.searchLoading
+          ? '<div class="empty"><strong>Searching Codegraph...</strong><p>Matches will appear with exact file, line, and relationship actions.</p></div>'
+          : '<div class="empty"><strong>Search, inspect, hand off.</strong><p>Find a symbol, inspect callers/callees/impact, then open the exact location or copy an agent-ready prompt.</p><div class="empty-actions"><button class="ghost" type="button" data-dashboard-action="sample-search" data-query="extension">Try search: extension</button><button class="ghost" type="button" data-dashboard-action="load-files">Browse indexed files</button><button class="ghost" type="button" data-dashboard-action="file-graph">Open file graph</button></div></div>';
         renderSelection();
         renderCopyControls();
         return;
       }
-      els.results.innerHTML = page.items.map((result, index) => rowHtml({ title: result.name, detail: [result.file + (result.line ? ':' + result.line : ''), result.signature || result.detail].filter(Boolean).join(' | '), relations: relationshipBadgesHtml(result), relationKey: relationshipKey(result), badge: result.kind || 'symbol', action: 'openResult', index, symbol: result.name, actions: true, preview: true, selectable: true, checked: isResultSelected(result) })).join('');
+      els.results.innerHTML = page.items.map((result, index) => rowHtml({ title: result.name, detail: [result.file + (result.line ? ':' + result.line : ''), result.signature || result.detail].filter(Boolean).join(' | '), relations: relationshipBadgesHtml(result), relationKey: supportsRelationships(result) ? relationshipKey(result) : '', badge: result.kind || 'symbol', action: 'openResult', index, symbol: result.name, actions: true, preview: true, selectable: true, checked: isResultSelected(result) })).join('');
       wireRows(els.results, page.items, 'openResult');
       ensureVisibleResultSelection(page.items, selectionHint);
       renderSelection();
@@ -478,21 +527,24 @@ export function getDashboardScript(): string {
       }
       const location = item.file + (item.line ? ':' + item.line : '');
       const detail = item.signature || item.detail || 'No signature returned.';
-      const summary = relationshipSummaryFor(item);
+      const canInspectRelationships = supportsRelationships(item);
+      const summary = canInspectRelationships ? relationshipSummaryFor(item) : undefined;
       els.selectionPanel.innerHTML = '<div class="index-note">' + escapeHtml(indexSummary()) + '</div><div class="inspector-head"><div><span>' + escapeHtml(item.kind || 'symbol') + '</span><strong>' + escapeHtml(item.name || location) + '</strong></div><div class="badge">' + escapeHtml(item.kind || 'symbol') + '</div></div>' +
         '<div class="inspector-location">' + escapeHtml(location) + '</div>' +
         '<div class="inspector-detail">' + escapeHtml(detail) + '</div>' +
         relationshipSummaryHtml(item, summary) +
-        '<div class="inspector-actions"><button class="ghost primary-action" id="inspectOpen" type="button">Open</button><button class="ghost" id="inspectGraph" type="button">Graph</button><button class="ghost" id="inspectCallers" type="button">' + escapeHtml(relationshipActionLabel('List callers', summary && summary.callers)) + '</button><button class="ghost" id="inspectCallees" type="button">' + escapeHtml(relationshipActionLabel('List callees', summary && summary.callees)) + '</button><button class="ghost" id="inspectImpact" type="button">' + escapeHtml(relationshipActionLabel('List impact', summary && summary.impact)) + '</button></div>';
+        '<div class="inspector-actions"><button class="ghost primary-action" id="inspectOpen" type="button">Open</button><button class="ghost" id="inspectGraph" type="button">Graph</button>' + (canInspectRelationships ? '<button class="ghost" id="inspectCallers" type="button">' + escapeHtml(relationshipActionLabel('List callers', summary && summary.callers)) + '</button><button class="ghost" id="inspectCallees" type="button">' + escapeHtml(relationshipActionLabel('List callees', summary && summary.callees)) + '</button><button class="ghost" id="inspectImpact" type="button">' + escapeHtml(relationshipActionLabel('List impact', summary && summary.impact)) + '</button>' : '') + '</div>';
       document.getElementById('inspectOpen').addEventListener('click', () => vscode.postMessage({ type: 'openResult', item }));
       document.getElementById('inspectGraph').addEventListener('click', () => openGraphForResult(item));
-      document.getElementById('inspectCallers').addEventListener('click', () => loadRelatedFromInspector('callers', item));
-      document.getElementById('inspectCallees').addEventListener('click', () => loadRelatedFromInspector('callees', item));
-      document.getElementById('inspectImpact').addEventListener('click', () => loadRelatedFromInspector('impact', item));
+      if (canInspectRelationships) {
+        document.getElementById('inspectCallers').addEventListener('click', () => loadRelatedFromInspector('callers', item));
+        document.getElementById('inspectCallees').addEventListener('click', () => loadRelatedFromInspector('callees', item));
+        document.getElementById('inspectImpact').addEventListener('click', () => loadRelatedFromInspector('impact', item));
+      }
       els.selectionPanel.querySelectorAll('[data-graph-mode]').forEach((button) => {
         button.addEventListener('click', () => openGraphForResult(item, button.dataset.graphMode));
       });
-      requestRelationshipSummary(item);
+      if (canInspectRelationships) { requestRelationshipSummary(item); }
     }
     function relationshipSummaryFor(item) {
       return item ? state.relationshipSummaries[relationshipKey(item)] : undefined;
@@ -515,7 +567,7 @@ export function getDashboardScript(): string {
       ].join('|');
     }
     function requestRelationshipSummary(item) {
-      if (!item || !item.name || state.relationshipSummaries[relationshipKey(item)]) { return; }
+      if (!supportsRelationships(item) || !item.name || state.relationshipSummaries[relationshipKey(item)]) { return; }
       clearTimeout(state.relationshipTimer);
       state.relationshipTimer = setTimeout(() => {
         if (state.selectedResult && relationshipKey(state.selectedResult) === relationshipKey(item)) {
@@ -535,7 +587,7 @@ export function getDashboardScript(): string {
       return [path, item.line || '', item.column || '', item.kind || '', item.name || ''].join('|');
     }
     function relationshipSummaryHtml(item, summary) {
-      if (!item.name) { return ''; }
+      if (!supportsRelationships(item) || !item.name) { return ''; }
       if (!summary || summary.loading) {
         return '<div class="relationship-summary"><div class="relationship-title">Graph previews</div><div class="relationship-loading">Previewing callers, callees, and impact...</div></div>';
       }
@@ -565,6 +617,7 @@ export function getDashboardScript(): string {
       return String(group.count || 0) + (group.hasMore ? '+' : '');
     }
     function relationshipBadgesHtml(item) {
+      if (!supportsRelationships(item)) { return ''; }
       const summary = relationshipSummaryFor(item);
       if (!summary || summary.loading) { return ''; }
       return [
@@ -580,8 +633,8 @@ export function getDashboardScript(): string {
       });
     }
     function openGraphForResult(item, mode) {
-      const query = (item && (item.name || item.file)) || els.query.value.trim();
-      const graphMode = mode || 'symbols';
+      const graphMode = mode || searchModeForResult(item);
+      const query = graphMode === 'text' ? (els.query.value.trim() || (item && item.name) || '') : (item && (item.kind === 'file' ? item.file : item.name || item.file)) || els.query.value.trim();
       const seedKey = item ? relationshipKey(item) : query;
       vscode.postMessage({ type: 'openGraph', source: 'search', seedKey, query, mode: graphMode, kind: graphMode === 'symbols' && item && item.kind || '', limit: Number(els.limitInput.value) || 80, depth: Number(els.depthInput.value) || 2 });
     }
@@ -624,7 +677,7 @@ export function getDashboardScript(): string {
       wireContextActions(item);
     }
     function contextActionButtonsHtml(item) {
-      const disabled = item ? '' : ' disabled';
+      const disabled = supportsRelationships(item) ? '' : ' disabled';
       return '<div class="context-actions"><button class="ghost" type="button" data-context-mode="callers"' + disabled + '>Callers</button><button class="ghost" type="button" data-context-mode="callees"' + disabled + '>Callees</button><button class="ghost" type="button" data-context-mode="impact"' + disabled + '>Impact</button></div>';
     }
     function wireContextActions(item) {
@@ -634,6 +687,14 @@ export function getDashboardScript(): string {
           loadRelatedFromInspector(button.dataset.contextMode, item);
         });
       });
+    }
+    function supportsRelationships(item) {
+      return Boolean(item && item.kind !== 'file' && item.kind !== 'text');
+    }
+    function searchModeForResult(item) {
+      if (item && item.kind === 'file') { return 'files'; }
+      if (item && item.kind === 'text') { return 'text'; }
+      return 'symbols';
     }
     function restoreDashboardInputs() {
       const inputs = state.inputs || {};
@@ -648,6 +709,7 @@ export function getDashboardScript(): string {
       if (typeof inputs.agentQuestion === 'string') { els.agentQuestion.value = inputs.agentQuestion; }
       if (state.resultPageSize) { els.resultsPageSize.value = String(state.resultPageSize); }
       if (state.filePageSize) { els.filesPageSize.value = String(state.filePageSize); }
+      syncSearchControls();
     }
     function persistDashboardState() {
       if (!vscode.setState) { return; }

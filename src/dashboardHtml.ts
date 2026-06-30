@@ -1,5 +1,6 @@
 import { getDashboardScript } from "./dashboardScript";
 import { getDashboardStyles } from "./dashboardStyles";
+import { webviewIcon } from "./webviewIcons";
 
 export function getDashboardHtml(nonce: string): string {
   return `<!DOCTYPE html>
@@ -28,21 +29,23 @@ export function getDashboardHtml(nonce: string): string {
         <button class="tab active" type="button" data-tab="search">Search</button>
         <button class="tab" type="button" data-tab="files">Indexed Files</button>
         <button class="tab" type="button" data-tab="context">Context</button>
-        <button class="tab action-tab" id="openGraph" type="button">Graph Explorer</button>
+        <button class="tab action-tab with-icon" id="openGraph" type="button">${dashboardIcon("graph")}<span>Graph Explorer</span></button>
       </div>
       <div class="tab-panels">
         <section class="tab-panel active" id="tab-search">
           <div class="section-head">
-            <h2 class="section-title">Search</h2>
+            <h2 class="section-title">Search Workbench</h2>
             <form class="search-box" id="searchForm">
-              <input id="query" type="search" placeholder="Symbol, function, class, component..." autocomplete="off">
+              <input id="query" type="search" placeholder="Search symbols..." autocomplete="off">
               <select id="modeFilter" title="Search mode">
                 <option value="symbols">Symbols</option>
+                <option value="text">Text in files</option>
+                <option value="files">File names</option>
                 <option value="callers">Callers</option>
                 <option value="callees">Callees</option>
                 <option value="impact">Impact</option>
               </select>
-              <button type="submit">Search</button>
+              <button class="with-icon" type="submit">${dashboardIcon("target")}<span>Search</span></button>
             </form>
             <div class="option-grid">
               <select id="kindFilter" title="Codegraph kind filter">
@@ -70,9 +73,9 @@ export function getDashboardHtml(nonce: string): string {
             <div class="agent-copy-panel" aria-label="Agent handoff">
               <input id="agentQuestion" type="search" placeholder="Question to include when copying an agent prompt" autocomplete="off">
               <div class="agent-copy-actions">
-                <button class="ghost" id="selectVisibleResults" type="button">Select Page</button>
-                <button class="ghost" id="copySelectedLocations" type="button">Copy Locations</button>
-                <button class="ghost" id="copyAgentPrompt" type="button">Copy Prompt</button>
+                <button class="ghost with-icon" id="selectVisibleResults" type="button">${dashboardIcon("checkSquare")}<span>Select Page</span></button>
+                <button class="ghost with-icon" id="copySelectedLocations" type="button">${dashboardIcon("copy")}<span>Copy Locations</span></button>
+                <button class="ghost with-icon" id="copyAgentPrompt" type="button">${dashboardIcon("agent")}<span>Copy Prompt</span></button>
               </div>
             </div>
           </div>
@@ -139,6 +142,10 @@ export function getDashboardHtml(nonce: string): string {
   <script nonce="${escapeAttribute(nonce)}">${getDashboardScript()}</script>
 </body>
 </html>`;
+}
+
+function dashboardIcon(name: Parameters<typeof webviewIcon>[0]): string {
+  return webviewIcon(name, "dashboard-icon");
 }
 
 function escapeAttribute(value: string): string {

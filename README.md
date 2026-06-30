@@ -230,7 +230,6 @@ actions.
 | `Codegraph: List Indexed Files` | Browse indexed files. |
 | `Codegraph: Refresh` | Clear cached extension state and refresh data. |
 | `Codegraph: Install Bundled Agent Skills` | Copy bundled Codegraph skills into `codegraph_skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, `.gemini/skills`, and `.cursor/skills` in one action, creating missing folders. |
-| `Codegraph: Show Update History` | Show extension changelog entries. |
 
 ## Settings
 

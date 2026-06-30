@@ -97,7 +97,7 @@ function createRuntime() {
   };
   const selectOptions = {
     source: ["files", "search"],
-    mode: ["symbols", "callers", "callees", "impact"],
+    mode: ["symbols", "text", "files", "callers", "callees", "impact"],
     kind: ["", "function", "method", "class", "variable", "route"],
     layout: ["radial", "flow", "layered", "bundle", "columns", "force"],
     depthMode: ["0.65", "1", "1.45"],
@@ -158,6 +158,7 @@ function createRuntime() {
     "showMore",
     "showAll",
     "openSource",
+    "copyNodeLocation",
     "showFullGraph",
     "showClusterList",
     "showOnlyGroup",

@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.0.62] - 2026-07-01
+
+### Added
+
+- Adds dashboard, sidebar, and graph search modes for indexed text and file names.
+- Adds shared SVG webview icons for dashboard, sidebar, and graph controls.
+
+### Changed
+
+- Removes the sidebar and command-palette update history action to keep the Codegraph UI focused on search, graph, refresh, and bundled skill workflows.
+- Tightens dashboard, sidebar, and graph controls with clearer action icons, stronger selected-row states, and more readable empty states.
+
 ## [0.0.61] - 2026-06-25
 
 ### Added

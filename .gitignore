@@ -13,15 +13,22 @@ coverage/
 # Local Codegraph indexes and agent workspaces
 .codegraph/
 .agents/
+.antigravity/
 .claude/
 .codex/
+.cursor/
 .gemini/
 .mps/
+.skillbridge/
+SKILL_GROUP.md
+skill_workspace.json
+skills-lock.json
 
 # Generated packages and local release artifacts
 *.vsix
 *.tgz
 artifacts/
+assets/image.png
 
 # Logs
 *.log

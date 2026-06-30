@@ -15,7 +15,6 @@ async function run() {
   assert.ok(commands.includes("codegraph.showStatus"), "status command should be registered");
   assert.ok(commands.includes("codegraph.listFiles"), "files command should be registered");
   assert.ok(commands.includes("codegraph.refresh"), "refresh command should be registered");
-  assert.ok(commands.includes("codegraph.showUpdateHistory"), "update history command should be registered");
 
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
   assert.ok(workspaceFolder, "smoke test should open a workspace folder");

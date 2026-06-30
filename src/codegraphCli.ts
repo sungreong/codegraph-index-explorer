@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import * as path from "node:path";
 import { promisify } from "node:util";
 import * as vscode from "vscode";
 import { getCodegraphCommandCandidates, getCodegraphInvocation } from "./codegraphCommand";
@@ -28,10 +29,13 @@ interface CacheEntry<T> {
 const statusCache = new Map<string, CacheEntry<unknown>>();
 const filesCache = new Map<string, CacheEntry<CodegraphFileResult[]>>();
 const searchCache = new Map<string, CacheEntry<CodegraphSearchResult[]>>();
+const fileSearchCache = new Map<string, CacheEntry<CodegraphSearchResult[]>>();
+const textSearchCache = new Map<string, CacheEntry<CodegraphSearchResult[]>>();
 const relatedCache = new Map<string, CacheEntry<CodegraphRelatedResult[]>>();
 const successfulCommandByConfigured = new Map<string, string>();
 
 export type { CodegraphFileResult, CodegraphRelatedResult, CodegraphSearchResult };
+export type CodegraphSearchMode = "symbols" | "callers" | "callees" | "impact" | "text" | "files";
 
 export interface CodegraphWorkspace {
   folder: vscode.WorkspaceFolder;
@@ -74,6 +78,37 @@ export async function queryCodegraph(
   });
 }
 
+export async function searchCodegraphIndex(
+  workspacePath: string,
+  search: string,
+  mode: CodegraphSearchMode,
+  limit: number,
+  kind?: string,
+  depth = 2,
+): Promise<CodegraphSearchResult[]> {
+  if (mode === "symbols") {
+    return queryCodegraph(workspacePath, search, limit, kind);
+  }
+
+  if (mode === "callers") {
+    return getCodegraphCallers(workspacePath, search, limit);
+  }
+
+  if (mode === "callees") {
+    return getCodegraphCallees(workspacePath, search, limit);
+  }
+
+  if (mode === "impact") {
+    return getCodegraphImpact(workspacePath, search, depth);
+  }
+
+  if (mode === "files") {
+    return searchCodegraphFiles(workspacePath, search, limit);
+  }
+
+  return searchIndexedText(workspacePath, search, limit);
+}
+
 export async function getCodegraphStatus(workspacePath: string): Promise<unknown> {
   return getCached(statusCache, workspacePath, STATUS_CACHE_TTL_MS, async () => {
     const output = await runCodegraph(["status", "--json", workspacePath], workspacePath);
@@ -93,6 +128,73 @@ export async function listCodegraphFiles(workspacePath: string, filter?: string,
     }
     const output = await runCodegraph(args, workspacePath);
     return normalizeFileResults(parseCodegraphJsonOutput(output));
+  });
+}
+
+export async function searchCodegraphFiles(workspacePath: string, search: string, limit: number): Promise<CodegraphSearchResult[]> {
+  const key = cacheKey(workspacePath, "file-search", search, limit);
+  return getCached(fileSearchCache, key, SEARCH_CACHE_TTL_MS, async () => {
+    const query = search.trim();
+    const files = hasGlob(query)
+      ? await listCodegraphFiles(workspacePath, undefined, query)
+      : await listCodegraphFiles(workspacePath);
+    const terms = searchTerms(query);
+    return files
+      .filter((file) => hasGlob(query) || matchesFileQuery(file.path, terms))
+      .map((file) => ({ file, score: scoreFileMatch(file.path, terms) }))
+      .sort((left, right) => right.score - left.score || left.file.path.localeCompare(right.file.path))
+      .slice(0, limit)
+      .map(({ file }) => fileResultToSearchResult(file));
+  });
+}
+
+export async function searchIndexedText(workspacePath: string, search: string, limit: number): Promise<CodegraphSearchResult[]> {
+  const key = cacheKey(workspacePath, "text-search", search, limit);
+  return getCached(textSearchCache, key, SEARCH_CACHE_TTL_MS, async () => {
+    const query = search.trim();
+    const queryLower = query.toLowerCase();
+    if (!queryLower) {
+      return [];
+    }
+
+    const files = await listCodegraphFiles(workspacePath);
+    const orderedFiles = [...files].sort((left, right) => {
+      const leftScore = scoreFileMatch(left.path, searchTerms(query));
+      const rightScore = scoreFileMatch(right.path, searchTerms(query));
+      return rightScore - leftScore || left.path.localeCompare(right.path);
+    });
+    const results: CodegraphSearchResult[] = [];
+
+    for (const file of orderedFiles) {
+      if (results.length >= limit) {
+        break;
+      }
+
+      const text = await readIndexedTextFile(workspacePath, file.path);
+      if (!text) {
+        continue;
+      }
+
+      const lines = text.split(/\r?\n/);
+      for (let index = 0; index < lines.length && results.length < limit; index += 1) {
+        const column = lines[index].toLowerCase().indexOf(queryLower);
+        if (column < 0) {
+          continue;
+        }
+
+        const preview = lines[index].trim();
+        results.push({
+          name: preview ? trimLabel(preview, 80) : `${path.basename(file.path)}:${index + 1}`,
+          kind: "text",
+          file: file.path,
+          line: index + 1,
+          column: column + 1,
+          detail: preview,
+        });
+      }
+    }
+
+    return results;
   });
 }
 
@@ -120,6 +222,8 @@ export function clearCodegraphCache(): void {
   statusCache.clear();
   filesCache.clear();
   searchCache.clear();
+  fileSearchCache.clear();
+  textSearchCache.clear();
   relatedCache.clear();
 }
 
@@ -202,6 +306,98 @@ function getCached<T>(
 
 function cacheKey(...parts: Array<string | number>): string {
   return parts.map((part) => String(part).replaceAll("\u001f", "")).join("\u001f");
+}
+
+function fileResultToSearchResult(file: CodegraphFileResult): CodegraphSearchResult {
+  return {
+    name: path.basename(file.path) || file.path,
+    kind: "file",
+    file: file.path,
+    detail: [
+      file.language,
+      typeof file.symbols === "number" ? `${file.symbols.toLocaleString()} symbols` : undefined,
+    ].filter(Boolean).join(" | "),
+  };
+}
+
+async function readIndexedTextFile(workspacePath: string, filePath: string): Promise<string | undefined> {
+  try {
+    const uri = resolveResultUri(workspacePath, filePath);
+    const bytes = await vscode.workspace.fs.readFile(uri);
+    if (bytes.byteLength > 1_500_000) {
+      return undefined;
+    }
+    const text = Buffer.from(bytes).toString("utf8");
+    return text.includes("\u0000") ? undefined : text;
+  } catch {
+    return undefined;
+  }
+}
+
+function searchTerms(value: string): string[] {
+  return value
+    .toLowerCase()
+    .split(/[\s/\\._-]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function matchesFileQuery(filePath: string, terms: string[]): boolean {
+  if (!terms.length) {
+    return true;
+  }
+
+  const normalized = normalizeGraphPath(filePath).toLowerCase();
+  const basename = path.basename(normalized);
+  return terms.every((term) => normalized.includes(term) || fuzzyIncludes(basename, term));
+}
+
+function scoreFileMatch(filePath: string, terms: string[]): number {
+  const normalized = normalizeGraphPath(filePath).toLowerCase();
+  const basename = path.basename(normalized);
+  return terms.reduce((score, term) => {
+    if (basename === term) {
+      return score + 120;
+    }
+    if (basename.startsWith(term)) {
+      return score + 80;
+    }
+    if (basename.includes(term)) {
+      return score + 50;
+    }
+    if (normalized.includes(term)) {
+      return score + 20;
+    }
+    if (fuzzyIncludes(basename, term)) {
+      return score + 8;
+    }
+    return score;
+  }, 0);
+}
+
+function fuzzyIncludes(value: string, query: string): boolean {
+  let index = 0;
+  for (const char of value) {
+    if (char === query[index]) {
+      index += 1;
+      if (index === query.length) {
+        return true;
+      }
+    }
+  }
+  return query.length === 0;
+}
+
+function hasGlob(value: string): boolean {
+  return /[*?[\]{}]/.test(value);
+}
+
+function normalizeGraphPath(value: string): string {
+  return value.replace(/\\/g, "/");
+}
+
+function trimLabel(value: string, maxLength: number): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}...` : value;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

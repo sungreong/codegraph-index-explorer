@@ -54,6 +54,36 @@ export function getGraphDetailStyles(): string {
       background: color-mix(in srgb, var(--vscode-editorWidget-background) 72%, transparent);
       font-size: 12px;
     }
+    .detail-primary-actions {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+      gap: 6px;
+      margin: 8px 0;
+    }
+    .detail-primary-actions button,
+    .detail-actions .group-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .detail-primary-actions button {
+      min-width: 0;
+      min-height: 30px;
+      padding: 6px 9px;
+      white-space: normal;
+      overflow-wrap: anywhere;
+    }
+    .detail-primary-actions .primary-action {
+      color: var(--vscode-button-foreground);
+      background: var(--vscode-button-background);
+    }
+    .detail-primary-actions .graph-icon,
+    .detail-actions .graph-icon {
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+    }
     .cluster-return {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(112px, auto);

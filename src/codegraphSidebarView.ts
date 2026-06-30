@@ -8,10 +8,12 @@ import {
   getCodegraphCallees,
   getCodegraphImpact,
   getCodegraphStatus,
-  queryCodegraph,
+  searchCodegraphIndex,
   resolveResultUri,
+  CodegraphSearchMode,
 } from "./codegraphCli";
 import { CODEGRAPH_SKILL_TARGET_ROOTS } from "./codegraphSkills";
+import { webviewIcon } from "./webviewIcons";
 
 interface SidebarState {
   active: boolean;
@@ -29,24 +31,12 @@ type SidebarMessage =
   | { type: "search"; query?: string; mode?: SearchMode; kind?: string; limit?: number; depth?: number }
   | { type: "openDashboard" }
   | { type: "openGraph" }
-  | { type: "openChangelog" }
   | { type: "syncBundledSkills" }
   | { type: "refresh" }
   | { type: "openResult"; item?: CodegraphSearchResult }
   | { type: "copy"; text?: string; label?: string };
 
-type SearchMode = "symbols" | "callers" | "callees" | "impact";
-type SidebarIconName =
-  | "checkSquare"
-  | "pin"
-  | "agent"
-  | "download"
-  | "dashboard"
-  | "graph"
-  | "list"
-  | "refresh"
-  | "copy";
-
+type SearchMode = CodegraphSearchMode;
 export class CodegraphSidebarView implements vscode.WebviewViewProvider {
   private view: vscode.WebviewView | undefined;
   private searchRequestId = 0;
@@ -61,7 +51,6 @@ export class CodegraphSidebarView implements vscode.WebviewViewProvider {
     private readonly context: vscode.ExtensionContext,
     private readonly onOpenDashboard: () => void,
     private readonly onOpenGraph: () => void,
-    private readonly onOpenChangelog: () => void,
   ) {}
 
   resolveWebviewView(webviewView: vscode.WebviewView): void {
@@ -158,11 +147,6 @@ export class CodegraphSidebarView implements vscode.WebviewViewProvider {
       return;
     }
 
-    if (message.type === "openChangelog") {
-      this.onOpenChangelog();
-      return;
-    }
-
     if (message.type === "syncBundledSkills") {
       await vscode.commands.executeCommand("codegraph.syncBundledSkills");
       return;
@@ -199,13 +183,7 @@ export class CodegraphSidebarView implements vscode.WebviewViewProvider {
       const depth = normalizePositiveNumber(message.depth, 2);
       const mode = message.mode ?? "symbols";
       const commandPreview = commandPreviewFor(this.state.workspacePath, query, mode, message.kind, limit, depth);
-      const results = mode === "symbols"
-        ? await queryCodegraph(this.state.workspacePath, query, limit, message.kind)
-        : mode === "callers"
-          ? await getCodegraphCallers(this.state.workspacePath, query, limit)
-          : mode === "callees"
-            ? await getCodegraphCallees(this.state.workspacePath, query, limit)
-            : await getCodegraphImpact(this.state.workspacePath, query, depth);
+      const results = await searchCodegraphIndex(this.state.workspacePath, query, mode, limit, message.kind, depth);
 
       if (requestId !== this.searchRequestId) {
         return;
@@ -253,22 +231,23 @@ function sidebarHtml(nonce: string): string {
       <span id="workspaceText"></span>
     </div>
     <form id="searchForm" class="search">
-      <input id="query" type="search" placeholder="Search Codegraph..." autocomplete="off">
+      <input id="query" type="search" placeholder="Search symbols..." autocomplete="off">
       <button type="submit">Search</button>
     </form>
     <div class="filters">
-      <select id="mode"><option value="symbols">Symbols</option><option value="callers">Callers</option><option value="callees">Callees</option><option value="impact">Impact</option></select>
+      <select id="mode"><option value="symbols">Symbols</option><option value="text">Text in files</option><option value="files">File names</option><option value="callers">Callers</option><option value="callees">Callees</option><option value="impact">Impact</option></select>
       <select id="kind"><option value="">Any kind</option><option value="function">function</option><option value="method">method</option><option value="class">class</option><option value="interface">interface</option><option value="type">type</option><option value="variable">variable</option><option value="route">route</option><option value="component">component</option></select>
       <input id="limit" type="number" min="1" max="100" value="20" title="Limit">
     </div>
-    <div class="actions" aria-label="Result actions">
+    <div class="actions result-actions" aria-label="Result actions">
       <button id="selectAll" type="button" title="Select all visible results" aria-label="Select all visible results">${sidebarIcon("checkSquare")}</button>
-      <button id="copyLocations" type="button" title="Copy selected locations, or all results if none are selected" aria-label="Copy selected locations, or all results if none are selected">${sidebarIcon("pin")}</button>
+      <button id="copyLocations" type="button" title="Copy selected locations, or all results if none are selected" aria-label="Copy selected locations, or all results if none are selected">${sidebarIcon("target")}</button>
       <button id="copyPrompt" type="button" title="Copy agent prompt for selected results, or all results if none are selected" aria-label="Copy agent prompt for selected results, or all results if none are selected">${sidebarIcon("agent")}</button>
-      <button id="syncSkills" type="button" title="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}" aria-label="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}">${sidebarIcon("download")}</button>
-      <button id="dashboard" type="button" title="Open dashboard" aria-label="Open dashboard">${sidebarIcon("dashboard")}</button>
       <button id="graph" type="button" title="Open graph explorer" aria-label="Open graph explorer">${sidebarIcon("graph")}</button>
-      <button id="changelog" type="button" title="Show update history" aria-label="Show update history">${sidebarIcon("list")}</button>
+    </div>
+    <div class="actions workspace-actions" aria-label="Workspace actions">
+      <button id="dashboard" type="button" title="Open dashboard" aria-label="Open dashboard">${sidebarIcon("dashboard")}</button>
+      <button id="syncSkills" type="button" title="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}" aria-label="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}">${sidebarIcon("download")}</button>
       <button id="refresh" type="button" title="Refresh Codegraph status" aria-label="Refresh Codegraph status">${sidebarIcon("refresh")}</button>
     </div>
     <div id="error" class="error" hidden></div>
@@ -304,9 +283,12 @@ function sidebarStyles(): string {
     input, select, button { box-sizing: border-box; min-width: 0; min-height: 28px; border-radius: 4px; font-family: inherit; }
     input, select { width: 100%; border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); background: var(--vscode-input-background); padding: 5px 7px; }
     select { border-color: var(--vscode-dropdown-border); color: var(--vscode-dropdown-foreground); background: var(--vscode-dropdown-background); }
+    input:disabled, select:disabled { opacity: 0.52; cursor: not-allowed; }
     button { border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); padding: 4px 7px; font-weight: 600; cursor: pointer; }
     button:hover { background: var(--vscode-button-secondaryHoverBackground); }
-    .actions { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; }
+    .actions { display: grid; gap: 6px; }
+    .result-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .workspace-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .actions button,
     #copyCommand {
       display: inline-flex;
@@ -361,8 +343,12 @@ function sidebarStyles(): string {
     .error { color: var(--vscode-errorForeground); font-size: 12px; line-height: 1.35; }
     .results { display: grid; gap: 1px; }
     .empty { color: var(--vscode-descriptionForeground); line-height: 1.45; padding: 12px 2px; }
+    .empty strong { display: block; margin-bottom: 4px; color: var(--vscode-foreground); }
+    .empty-actions { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 10px; }
+    .empty-actions button { width: 100%; text-align: left; min-height: 30px; }
     .row { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px; padding: 7px 4px; border-radius: 4px; cursor: pointer; }
-    .row:hover, .row.selected { background: var(--vscode-list-hoverBackground); }
+    .row:hover, .row.selected, .row:focus-visible { background: var(--vscode-list-hoverBackground); }
+    .row:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     .row input { width: 14px; height: 14px; min-height: 0; margin-top: 2px; padding: 0; }
     .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
     .detail, .sig { margin-top: 2px; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
@@ -370,20 +356,8 @@ function sidebarStyles(): string {
   `;
 }
 
-function sidebarIcon(name: SidebarIconName): string {
-  const paths: Record<SidebarIconName, string> = {
-    checkSquare: '<rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="m8 12 3 3 5-6"></path>',
-    pin: '<path d="M12 21s6-5.1 6-11a6 6 0 0 0-12 0c0 5.9 6 11 6 11Z"></path><circle cx="12" cy="10" r="2"></circle>',
-    agent: '<rect x="5" y="7" width="14" height="11" rx="3"></rect><path d="M9 7V5"></path><path d="M15 7V5"></path><path d="M9 12h.01"></path><path d="M15 12h.01"></path><path d="M10 16h4"></path>',
-    download: '<path d="M12 4v10"></path><path d="m8 10 4 4 4-4"></path><path d="M5 20h14"></path>',
-    dashboard: '<rect x="4" y="4" width="7" height="7" rx="1.5"></rect><rect x="13" y="4" width="7" height="7" rx="1.5"></rect><rect x="4" y="13" width="7" height="7" rx="1.5"></rect><rect x="13" y="13" width="7" height="7" rx="1.5"></rect>',
-    graph: '<circle cx="6" cy="12" r="2.5"></circle><circle cx="18" cy="7" r="2.5"></circle><circle cx="18" cy="17" r="2.5"></circle><path d="M8.3 11 15.7 8"></path><path d="M8.3 13 15.7 16"></path>',
-    list: '<path d="M8 6h12"></path><path d="M8 12h12"></path><path d="M8 18h12"></path><path d="M4 6h.01"></path><path d="M4 12h.01"></path><path d="M4 18h.01"></path>',
-    refresh: '<path d="M20 11a8 8 0 0 0-14.4-4.8L4 8"></path><path d="M4 4v4h4"></path><path d="M4 13a8 8 0 0 0 14.4 4.8L20 16"></path><path d="M20 20v-4h-4"></path>',
-    copy: '<rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M5 15V7a2 2 0 0 1 2-2h8"></path>',
-  };
-
-  return `<svg class="sidebar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${paths[name]}</svg>`;
+function sidebarIcon(name: Parameters<typeof webviewIcon>[0]): string {
+  return webviewIcon(name, "sidebar-icon");
 }
 
 function sidebarScript(): string {
@@ -396,10 +370,10 @@ function sidebarScript(): string {
       searchForm: document.getElementById('searchForm'), mode: document.getElementById('mode'), kind: document.getElementById('kind'), limit: document.getElementById('limit'),
       selectAll: document.getElementById('selectAll'), copyLocations: document.getElementById('copyLocations'),
       copyPrompt: document.getElementById('copyPrompt'), syncSkills: document.getElementById('syncSkills'), dashboard: document.getElementById('dashboard'), graph: document.getElementById('graph'), refresh: document.getElementById('refresh'),
-      changelog: document.getElementById('changelog'),
       error: document.getElementById('error'), commandRow: document.getElementById('commandRow'), commandPreview: document.getElementById('commandPreview'), copyCommand: document.getElementById('copyCommand'), meta: document.getElementById('meta'), results: document.getElementById('results')
     };
     els.searchForm.addEventListener('submit', (event) => { event.preventDefault(); search(); });
+    els.mode.addEventListener('change', () => { updateSearchControls(); render(); });
     els.selectAll.addEventListener('click', toggleAll);
     els.copyLocations.addEventListener('click', () => copy('locations'));
     els.copyPrompt.addEventListener('click', () => copy('prompt'));
@@ -410,8 +384,19 @@ function sidebarScript(): string {
     els.syncSkills.addEventListener('click', () => vscode.postMessage({ type: 'syncBundledSkills' }));
     els.dashboard.addEventListener('click', () => vscode.postMessage({ type: 'openDashboard' }));
     els.graph.addEventListener('click', () => vscode.postMessage({ type: 'openGraph' }));
-    els.changelog.addEventListener('click', () => vscode.postMessage({ type: 'openChangelog' }));
     els.refresh.addEventListener('click', () => vscode.postMessage({ type: 'refresh' }));
+    els.results.addEventListener('click', (event) => {
+      const actionButton = event.target && event.target.closest ? event.target.closest('[data-empty-action]') : null;
+      if (!actionButton) { return; }
+      const action = actionButton.dataset.emptyAction || '';
+      if (action === 'sample-search') {
+        els.query.value = actionButton.dataset.query || 'Codegraph';
+        search();
+      }
+      if (action === 'dashboard') { vscode.postMessage({ type: 'openDashboard' }); }
+      if (action === 'graph') { vscode.postMessage({ type: 'openGraph' }); }
+      if (action === 'refresh') { vscode.postMessage({ type: 'refresh' }); }
+    });
     window.addEventListener('message', (event) => {
       const message = event.data;
       if (message.type === 'loading') {
@@ -435,6 +420,7 @@ function sidebarScript(): string {
       vscode.postMessage({ type: 'search', query, mode: els.mode.value, kind: els.mode.value === 'symbols' ? els.kind.value : '', limit: Number(els.limit.value) || 20, depth: 2 });
     }
     function render() {
+      updateSearchControls();
       els.statusText.textContent = state.statusLabel || 'Codegraph';
       els.workspaceText.textContent = state.workspaceName ? state.workspaceName : (state.workspacePath || '');
       if (state.query && els.query.value !== state.query) { els.query.value = state.query; }
@@ -450,8 +436,8 @@ function sidebarScript(): string {
       els.copyPrompt.disabled = !state.results || state.results.length === 0;
       if (!state.results || state.results.length === 0) {
         els.results.innerHTML = state.loading
-          ? '<div class="empty">Searching "' + escapeHtml(state.loadingQuery) + '"...</div>'
-          : '<div class="empty">Search here to show Codegraph results in this side tab.</div>';
+          ? '<div class="empty"><strong>Searching "' + escapeHtml(state.loadingQuery) + '"...</strong><span>Results will appear here with exact file locations.</span></div>'
+          : emptyStateHtml();
         return;
       }
       els.results.innerHTML = state.results.map((item, index) => rowHtml(item, index)).join('');
@@ -461,17 +447,44 @@ function sidebarScript(): string {
           if (event.target && event.target.matches('input')) { return; }
           vscode.postMessage({ type: 'openResult', item });
         });
+        row.addEventListener('keydown', (event) => {
+          if (event.target && event.target.matches('input')) { return; }
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            vscode.postMessage({ type: 'openResult', item });
+          }
+        });
       });
       els.results.querySelectorAll('[data-check]').forEach((check) => check.addEventListener('change', () => {
         state.selected[resultKey(state.results[Number(check.dataset.check)])] = check.checked;
         render();
       }));
     }
+    function updateSearchControls() {
+      const mode = els.mode.value;
+      const placeholders = {
+        symbols: 'Search symbols...',
+        text: 'Search text in indexed files...',
+        files: 'Search file names or paths...',
+        callers: 'Find callers for symbol...',
+        callees: 'Find callees for symbol...',
+        impact: 'Find impact for symbol...'
+      };
+      els.query.placeholder = placeholders[mode] || 'Search Codegraph...';
+      els.kind.disabled = mode !== 'symbols';
+      els.kind.title = mode === 'symbols' ? 'Filter symbol kind' : 'Kind filter only applies to Symbols';
+    }
     function rowHtml(item, index) {
       const key = resultKey(item);
       const location = item.file + (item.line ? ':' + item.line : '') + (item.column ? ':' + item.column : '');
       const sig = item.signature || item.detail || '';
-      return '<div class="row" data-index="' + index + '"><input type="checkbox" data-check="' + index + '"' + (state.selected[key] ? ' checked' : '') + '><div><div class="title"><span class="kind">' + escapeHtml(item.kind || 'symbol') + '</span>' + escapeHtml(item.name || item.file) + '</div><div class="detail">' + escapeHtml(location) + '</div>' + (sig ? '<div class="sig">' + escapeHtml(sig) + '</div>' : '') + '</div></div>';
+      return '<div class="row" tabindex="0" role="button" data-index="' + index + '"><input type="checkbox" data-check="' + index + '"' + (state.selected[key] ? ' checked' : '') + '><div><div class="title"><span class="kind">' + escapeHtml(item.kind || 'symbol') + '</span>' + escapeHtml(item.name || item.file) + '</div><div class="detail">' + escapeHtml(location) + '</div>' + (sig ? '<div class="sig">' + escapeHtml(sig) + '</div>' : '') + '</div></div>';
+    }
+    function emptyStateHtml() {
+      if (state.error) {
+        return '<div class="empty"><strong>Codegraph needs attention</strong><span>Refresh the index status or open the dashboard for the full workspace view.</span><div class="empty-actions"><button type="button" data-empty-action="refresh">Refresh status</button><button type="button" data-empty-action="dashboard">Open dashboard</button></div></div>';
+      }
+      return '<div class="empty"><strong>Find code in seconds</strong><span>Search a symbol, function, file, route, or component, then open the exact location or copy context for an agent.</span><div class="empty-actions"><button type="button" data-empty-action="sample-search" data-query="extension">Try search: extension</button><button type="button" data-empty-action="graph">Open file structure graph</button><button type="button" data-empty-action="dashboard">Browse indexed files</button></div></div>';
     }
     function toggleAll() {
       const results = state.results || [];
@@ -502,6 +515,12 @@ function sidebarScript(): string {
       const mode = els.mode.value;
       if (mode === 'symbols') {
         return ['codegraph', 'query', '--json', '--path', '<workspace>', '--limit', limit, els.kind.value ? '--kind ' + els.kind.value : '', query].filter(Boolean).join(' ');
+      }
+      if (mode === 'text') {
+        return ['Codegraph indexed text search', '--workspace', '<workspace>', '--limit', limit, query].join(' ');
+      }
+      if (mode === 'files') {
+        return ['codegraph', 'files', '--json', '--path', '<workspace>', '--format', 'flat', '--filter', query, '--limit', limit].join(' ');
       }
       if (mode === 'impact') {
         return ['codegraph', 'impact', '--json', '--path', '<workspace>', '--depth', 2, query].join(' ');
@@ -548,6 +567,14 @@ function commandPreviewFor(
       kind ? `--kind ${kind}` : "",
       query,
     ].filter(Boolean).join(" ");
+  }
+
+  if (mode === "text") {
+    return ["Codegraph indexed text search", "--workspace", workspacePath, "--limit", String(limit), query].join(" ");
+  }
+
+  if (mode === "files") {
+    return ["codegraph", "files", "--json", "--path", workspacePath, "--format", "flat", "--filter", query, "--limit", String(limit)].join(" ");
   }
 
   if (mode === "impact") {
