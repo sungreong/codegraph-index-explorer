@@ -6,11 +6,14 @@
 
 - Adds dashboard, sidebar, and graph search modes for indexed text and file names.
 - Adds shared SVG webview icons for dashboard, sidebar, and graph controls.
+- Adds quick empty-state actions for sample search, indexed file browsing, and opening the file graph.
+- Adds a graph detail action for copying a selected node's file location.
 
 ### Changed
 
 - Removes the sidebar and command-palette update history action to keep the Codegraph UI focused on search, graph, refresh, and bundled skill workflows.
 - Tightens dashboard, sidebar, and graph controls with clearer action icons, stronger selected-row states, and more readable empty states.
+- Keeps relationship actions focused on symbol results while file and text matches emphasize opening, graphing, and copying locations.
 
 ## [0.0.61] - 2026-06-25
 

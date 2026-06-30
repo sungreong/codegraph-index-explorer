@@ -1,6 +1,6 @@
 # Codegraph Explorer
 
-이미 `.codegraph` 인덱스를 쓰고 있는 프로젝트를 VS Code 안에서 더 빠르게 탐색하기 위한 가벼운 확장입니다.
+이미 `.codegraph` 인덱스를 쓰고 있는 프로젝트를 VS Code 안에서 더 빠르게 탐색하기 위한 가벼운 확장입니다. VS Code를 떠나지 않고 심볼, 인덱싱된 파일 텍스트, 파일 경로, callers, callees, impact를 대시보드, 사이드바, 그래프 뷰에서 검색할 수 있습니다.
 
 [Visual Studio Marketplace에서 설치하기](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.codegraph-index-explorer)
 
@@ -14,12 +14,24 @@ VS Code 확장 검색에서 **Codegraph Explorer**를 검색해 설치해 주세
 
 Codegraph Explorer는 Codegraph 자체를 새로 만드는 도구가 아닙니다. 이미 만들어진 `.codegraph` 인덱스를 VS Code 안에서 읽고, 개발자가 바로 이동하고 확인할 수 있게 보여주는 탐색 도구입니다.
 
-- 심볼, 파일, 코드 위치를 VS Code에서 바로 검색합니다.
+- 심볼, 파일 이름, 파일 안의 텍스트 매치를 VS Code에서 바로 검색합니다.
 - 검색 결과를 파일, 줄, 컬럼 위치로 바로 엽니다.
 - callers, callees, impact 같은 관계 정보를 확인합니다.
 - Graph Explorer에서 노드와 파일 관계를 확대, 축소, 드래그, 포커스 모드로 살펴봅니다.
 - 선택한 결과의 정확한 위치나 에이전트에게 넘기기 좋은 프롬프트를 복사합니다.
 - 기존 Codegraph CLI, MCP, 에이전트 워크플로와 함께 쓰도록 작고 가볍게 유지합니다.
+
+## 0.0.62에서 달라진 점
+
+- 대시보드, 사이드 뷰, Graph Explorer에서 **Symbols**, **Text in files**,
+  **File names**, **Callers**, **Callees**, **Impact** 검색 모드를 사용할 수
+  있습니다.
+- 대시보드와 사이드 뷰의 빈 상태가 더 명확해졌고, 샘플 검색, 인덱싱된 파일
+  보기, 파일 그래프 열기로 바로 이동할 수 있습니다.
+- Graph Explorer 컨트롤이 일관된 아이콘 버튼으로 정리되었고, 선택한 노드의
+  위치를 빠르게 복사하는 **Copy location** 액션이 추가되었습니다.
+- 업데이트 내역 명령은 Command Palette와 사이드 뷰에서 제거해 검색, 그래프,
+  새로고침, 번들 스킬 설치 흐름에 집중하도록 했습니다.
 
 ## 설치 방법
 
@@ -209,6 +221,14 @@ export PATH="$HOME/.local/bin:$PATH"
 
 대시보드와 사이드 뷰에서는 인덱스 상태, 인덱싱된 파일, 검색 결과, 관련 액션을 볼 수 있습니다. 결과를 선택하면 해당 소스 파일의 위치로 바로 이동합니다.
 
+검색 모드:
+
+- **Symbols**는 Codegraph 심볼을 검색하며 kind 필터를 사용할 수 있습니다.
+- **Text in files**는 현재 Codegraph 인덱스에 포함된 파일 안의 텍스트를
+  검색합니다.
+- **File names**는 인덱싱된 파일 이름과 경로를 검색합니다.
+- **Callers**, **Callees**, **Impact**는 심볼의 관계 정보를 검색합니다.
+
 Graph Explorer는 별도 패널에서 열리며 관계 그래프를 보여줍니다. 확대/축소, 노드 드래그, 포커스 모드, 미니맵, 호버 미리보기, 상세 액션을 지원합니다.
 
 ![검색과 상세 패널](assets/codegraph-search-graph-details.png)
@@ -226,7 +246,6 @@ Graph Explorer는 별도 패널에서 열리며 관계 그래프를 보여줍니
 | `Codegraph: List Indexed Files` | 인덱싱된 파일 목록을 봅니다. |
 | `Codegraph: Refresh` | 확장 캐시를 지우고 상태와 사이드바 데이터를 새로고침합니다. |
 | `Codegraph: Install Bundled Agent Skills` | 포함된 Codegraph 스킬을 한 번에 `codegraph_skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, `.gemini/skills`, `.cursor/skills`로 복사하고 폴더가 없으면 생성합니다. |
-| `Codegraph: Show Update History` | 확장 변경 내역을 보여줍니다. |
 
 ## 설정
 

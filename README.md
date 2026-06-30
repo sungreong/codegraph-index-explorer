@@ -1,6 +1,8 @@
 # Codegraph Explorer
 
-Lightweight VS Code navigation for projects that already use Codegraph.
+Lightweight VS Code navigation for projects that already use Codegraph. Search
+symbols, indexed file text, file paths, callers, callees, and impact from the
+dashboard, side bar, or graph view without leaving VS Code.
 
 [Install from the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=datanewbie-labs.codegraph-index-explorer) or open VS Code Extensions and search for **Codegraph Explorer**.
 
@@ -13,7 +15,8 @@ Lightweight VS Code navigation for projects that already use Codegraph.
 Codegraph Explorer is for developers who already have a `.codegraph` index and
 want to use that context without leaving VS Code.
 
-- Search indexed symbols and code locations from the Activity Bar.
+- Search indexed symbols, file names, and text matches from the Activity Bar,
+  dashboard, or graph view.
 - Open results at exact file, line, and column positions.
 - Inspect callers, callees, impact, files, and graph relationships.
 - Use Graph Explorer to pan, zoom, focus, and inspect Codegraph relationships.
@@ -21,6 +24,19 @@ want to use that context without leaving VS Code.
   agents.
 - Stay lightweight: this extension reads your existing Codegraph index instead
   of replacing your parser, indexer, MCP server, or agent workflow.
+
+## What's New in 0.0.62
+
+- Search now supports **Symbols**, **Text in files**, **File names**,
+  **Callers**, **Callees**, and **Impact** in the dashboard, side view, and
+  Graph Explorer.
+- The dashboard and side view now include clearer empty states with fast actions
+  for sample search, indexed files, and file graph browsing.
+- Graph Explorer controls now use consistent icon buttons and add a quick
+  **Copy location** action for selected nodes.
+- The update-history command was removed from the command palette and side view
+  so the extension stays focused on search, graph, refresh, and bundled skill
+  workflows.
 
 ## Install
 
@@ -214,6 +230,14 @@ Open a workspace that contains `.codegraph`, then use one of these entry points:
 The dashboard and side view show index status, indexed files, search results,
 and related Codegraph actions. Selecting a result opens the source file at the
 indexed location.
+
+Search modes:
+
+- **Symbols** searches Codegraph symbols and supports the kind filter.
+- **Text in files** searches text inside files listed by the current Codegraph
+  index.
+- **File names** searches indexed file names and paths.
+- **Callers**, **Callees**, and **Impact** search relationships for a symbol.
 
 Graph Explorer opens in a separate panel and renders Codegraph relationships
 with pan, zoom, node dragging, focus mode, minimap, hover previews, and detail
