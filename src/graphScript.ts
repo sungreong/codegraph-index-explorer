@@ -25,6 +25,8 @@ export function getGraphScript(): string {
       expandedKeys: new Set(),
       activeClusterKey: '',
       activeClusterLabel: '',
+      activeClusterNodeIds: new Set(),
+      clusterGroups: new Map(),
       focusOnly: false,
       motion: !reduceMotion,
       orbit: false,
@@ -68,6 +70,8 @@ export function getGraphScript(): string {
       labelMode: document.getElementById('labelMode'),
       filePattern: document.getElementById('filePattern'),
       limit: document.getElementById('limit'),
+      viewActions: document.getElementById('viewActions'),
+      exportActions: document.getElementById('exportActions'),
       advancedControls: document.getElementById('advancedControls'),
       stepLimitDown: document.getElementById('stepLimitDown'),
       resetView: document.getElementById('resetView'),
@@ -95,6 +99,11 @@ export function getGraphScript(): string {
       network: document.getElementById('graphNetwork'),
       details: document.getElementById('details')
     };
+
+    [els.advancedControls, els.viewActions, els.exportActions].filter(Boolean).forEach((disclosure) => {
+      syncDisclosureAria(disclosure);
+      disclosure.addEventListener('toggle', () => syncDisclosureAria(disclosure));
+    });
 
     els.form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -287,6 +296,10 @@ export function getGraphScript(): string {
         state.results = [];
         state.expandedKeys = new Set();
         state.expandedCount = 0;
+        state.activeClusterKey = '';
+        state.activeClusterLabel = '';
+        state.activeClusterNodeIds = new Set();
+        state.clusterGroups = new Map();
         recordActivity(message.cached ? 'cached' : 'fresh', (message.cached ? 'Cached' : 'Loaded') + ' indexed files | ' + state.files.length.toLocaleString() + ' files');
         if (message.cached) { els.graphStats.textContent = 'Using cached indexed files'; }
         render();
@@ -296,6 +309,10 @@ export function getGraphScript(): string {
         state.results = message.results || [];
         state.expandedKeys = new Set();
         state.expandedCount = 0;
+        state.activeClusterKey = '';
+        state.activeClusterLabel = '';
+        state.activeClusterNodeIds = new Set();
+        state.clusterGroups = new Map();
         recordActivity(message.cached ? 'cached' : 'fresh', (message.cached ? 'Cached' : 'Loaded') + ' graph results | ' + state.results.length.toLocaleString() + ' results');
         if (message.cached) { els.graphStats.textContent = 'Using cached graph results'; }
         render();
@@ -336,6 +353,16 @@ export function getGraphScript(): string {
       if (requestId < state.activeGraphRequestId) { return false; }
       state.activeGraphRequestId = requestId;
       return true;
+    }
+
+    function syncDisclosureAria(disclosure) {
+      if (!disclosure) { return; }
+      const open = Boolean(disclosure.open);
+      disclosure.setAttribute('aria-expanded', String(open));
+      const summary = disclosure.querySelector ? disclosure.querySelector('summary') : null;
+      if (summary) {
+        summary.setAttribute('aria-expanded', String(open));
+      }
     }
     function acceptExpansionMessage(message) {
       const requestId = Number(message.graphRequestId) || 0;

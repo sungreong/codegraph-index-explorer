@@ -1,8 +1,9 @@
 import { getGraphDetailStyles } from "./graphDetailStyles";
+import { getWebviewBaseStyles } from "./webviewDesign";
 
 export function getGraphStyles(): string {
   return `
-    :root { color-scheme: light dark; }
+    ${getWebviewBaseStyles()}
     body {
       margin: 0;
       color: var(--vscode-foreground);
@@ -242,38 +243,11 @@ export function getGraphStyles(): string {
       position: relative;
     }
     input, select {
-      box-sizing: border-box;
-      min-height: 30px;
-      border-radius: 4px;
-      border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
-      outline: none;
-      color: var(--vscode-input-foreground);
-      background: var(--vscode-input-background);
       padding: 7px 9px;
     }
-    select {
-      color: var(--vscode-dropdown-foreground);
-      background: var(--vscode-dropdown-background);
-      border-color: var(--vscode-dropdown-border, var(--vscode-panel-border));
-    }
-    input:focus, select:focus, button:focus-visible, summary:focus-visible { border-color: var(--vscode-focusBorder); outline: 1px solid var(--vscode-focusBorder); outline-offset: 1px; }
-    input:disabled, select:disabled {
-      opacity: 0.52;
-      cursor: not-allowed;
-    }
     button {
-      min-height: 30px;
-      border: 1px solid var(--vscode-button-border, transparent);
-      border-radius: 4px;
       padding: 7px 12px;
-      color: var(--vscode-button-foreground);
-      background: var(--vscode-button-background);
-      cursor: pointer;
-      font-weight: 650;
     }
-    button:hover { background: var(--vscode-button-hoverBackground); }
-    button.ghost { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
-    button.ghost:hover { background: var(--vscode-button-secondaryHoverBackground); }
     .icon-button {
       width: 34px;
       min-width: 34px;

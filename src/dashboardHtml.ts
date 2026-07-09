@@ -26,13 +26,13 @@ export function getDashboardHtml(nonce: string): string {
     </div>
     <main>
       <div class="tabs" role="tablist">
-        <button class="tab active" type="button" data-tab="search">Search</button>
-        <button class="tab" type="button" data-tab="files">Indexed Files</button>
-        <button class="tab" type="button" data-tab="context">Context</button>
+        <button class="tab active" id="tabButton-search" role="tab" aria-selected="true" aria-controls="tab-search" type="button" data-tab="search">Search</button>
+        <button class="tab" id="tabButton-files" role="tab" aria-selected="false" aria-controls="tab-files" type="button" data-tab="files">Indexed Files</button>
+        <button class="tab" id="tabButton-context" role="tab" aria-selected="false" aria-controls="tab-context" type="button" data-tab="context">Context</button>
         <button class="tab action-tab with-icon" id="openGraph" type="button">${dashboardIcon("graph")}<span>Graph Explorer</span></button>
       </div>
       <div class="tab-panels">
-        <section class="tab-panel active" id="tab-search">
+        <section class="tab-panel active" id="tab-search" role="tabpanel" aria-labelledby="tabButton-search">
           <div class="section-head">
             <h2 class="section-title">Search Workbench</h2>
             <form class="search-box" id="searchForm">
@@ -104,7 +104,7 @@ export function getDashboardHtml(nonce: string): string {
             </aside>
           </div>
         </section>
-        <section class="tab-panel" id="tab-files">
+        <section class="tab-panel" id="tab-files" role="tabpanel" aria-labelledby="tabButton-files">
           <div class="section-head">
             <h2 class="section-title">Indexed Files</h2>
             <div class="head-tools">
@@ -130,7 +130,7 @@ export function getDashboardHtml(nonce: string): string {
             </div>
           </div>
         </section>
-        <section class="tab-panel" id="tab-context">
+        <section class="tab-panel" id="tab-context" role="tabpanel" aria-labelledby="tabButton-context">
           <div class="section-head">
             <h2 class="section-title">Codegraph Context</h2>
           </div>

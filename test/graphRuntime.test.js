@@ -78,7 +78,7 @@ function createSelect(id, value, options) {
   return element;
 }
 
-function createRuntime() {
+function createRuntime(positionForNode) {
   const posted = [];
   const networks = [];
   const messageHandlers = [];
@@ -129,6 +129,8 @@ function createRuntime() {
     "labelMode",
     "filePattern",
     "limit",
+    "viewActions",
+    "exportActions",
     "advancedControls",
     "stepLimitDown",
     "resetView",
@@ -166,6 +168,8 @@ function createRuntime() {
     "stabilizeNode",
     "prevNeighbors",
     "nextNeighbors",
+    "prevClusterNodes",
+    "nextClusterNodes",
   ];
 
   ids.forEach((id) => {
@@ -183,7 +187,8 @@ function createRuntime() {
     }
 
     update(items) {
-      this.items = items;
+      const existing = new Map(this.items.map((item) => [item.id, item]));
+      this.items = items.map((item) => existing.has(item.id) ? { ...existing.get(item.id), ...item } : item);
     }
   }
 
@@ -236,7 +241,7 @@ function createRuntime() {
     getPositions() {
       return Object.fromEntries(this.data.nodes.items.map((node, index) => [
         node.id,
-        { x: index * 10, y: index * 5 },
+        positionForNode ? positionForNode(node, index) : { x: index * 10, y: index * 5 },
       ]));
     }
 
@@ -304,6 +309,7 @@ function createRuntime() {
     elements,
     networks,
     posted,
+    context,
     send(message) {
       messageHandlers.forEach((handler) => handler({ data: message }));
     },
@@ -349,6 +355,32 @@ partialRuntime.networks[0].handlers.selectNode({ nodes: ["dir:src/backend/api/v1
 assert.match(partialRuntime.elements.get("details").innerHTML, /Connected/);
 assert.match(partialRuntime.elements.get("details").innerHTML, /20 not rendered/);
 assert.match(partialRuntime.elements.get("details").innerHTML, /100/);
+
+const clusterRuntime = createRuntime((node, index) => {
+  if (node.id === "file:.agents/skills/design/a.md") {
+    return { x: 500, y: 500 };
+  }
+  if (node.id === "dir:.agents/skills/design") {
+    return { x: 24, y: 18 };
+  }
+  return { x: index * 8, y: index * 4 };
+});
+clusterRuntime.send({ type: "state", workspaceName: "workspace", workspacePath: "C:/workspace" });
+clusterRuntime.send({
+  type: "filesResults",
+  files: [
+    { path: ".agents/skills/root-a.md", language: "markdown", symbols: 1 },
+    { path: ".agents/skills/root-b.md", language: "markdown", symbols: 1 },
+    { path: ".agents/skills/root-c.md", language: "markdown", symbols: 1 },
+    { path: ".agents/skills/design/a.md", language: "markdown", symbols: 1 },
+  ],
+});
+clusterRuntime.context.selectCluster(".agents/skills", "agents/skills");
+const clusterNodesById = new Map(clusterRuntime.networks[0].data.nodes.items.map((node) => [node.id, node]));
+assert.equal(clusterNodesById.get("file:.agents/skills/design/a.md").hidden, true, "cluster click should hide child path nodes outside the visual hull");
+assert.equal(clusterNodesById.get("file:.agents/skills/root-a.md").hidden, false, "cluster click should keep nodes inside the visual hull");
+const hiddenEdgeToOutsideNode = clusterRuntime.networks[0].data.edges.items.find((edge) => edge.to === "file:.agents/skills/design/a.md");
+assert.equal(hiddenEdgeToOutsideNode.hidden, true, "cluster click should hide edges whose endpoint is outside the active hull");
 
 const searchRuntime = createRuntime();
 searchRuntime.elements.get("source").value = "search";

@@ -1,5 +1,23 @@
 # Change Log
 
+## [0.0.63] - 2026-07-10
+
+### Added
+
+- Adds documentation evaluating Astryx as a reference for future webview improvements.
+- Adds shared VS Code theme-based webview design tokens for dashboard, graph, and sidebar surfaces.
+
+### Changed
+
+- Compacts the dashboard search workbench header so search results have more usable vertical space.
+- Improves dashboard, graph, and sidebar controls with more consistent button, focus, disabled, and empty-state styling.
+- Adds ARIA relationships for dashboard tabs and keeps webview disclosure expanded states synchronized.
+
+### Fixed
+
+- Fixes Graph Explorer cluster clicks so filtering follows the visible cluster hull bounds instead of broad path-prefix descendants.
+- Keeps graph cluster edges visible only when both endpoints remain inside the selected visual cluster region.
+
 ## [0.0.62] - 2026-07-01
 
 ### Added

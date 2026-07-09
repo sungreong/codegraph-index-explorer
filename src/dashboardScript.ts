@@ -155,7 +155,11 @@ export function getDashboardScript(): string {
       if (state.activeTab) { activateTab(state.activeTab); }
     }
     function activateTab(name) {
-      document.querySelectorAll('.tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.tab === name));
+      document.querySelectorAll('.tab[data-tab]').forEach((tab) => {
+        const active = tab.dataset.tab === name;
+        tab.classList.toggle('active', active);
+        tab.setAttribute('aria-selected', String(active));
+      });
       document.querySelectorAll('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === 'tab-' + name));
       state.activeTab = name;
       persistDashboardState();
@@ -263,7 +267,8 @@ export function getDashboardScript(): string {
     }
     function rowHtml(item) {
       const role = item.action === 'openResult' ? 'option' : 'button';
-      return '<div class="row" role="' + role + '" tabindex="0" data-action="' + item.action + '" data-index="' + item.index + '">' +
+      const selected = role === 'option' ? ' aria-selected="false"' : '';
+      return '<div class="row" role="' + role + '"' + selected + ' tabindex="0" data-action="' + item.action + '" data-index="' + item.index + '">' +
         selectionCheckboxHtml(item) +
         '<div><div class="row-title">' + escapeHtml(item.title) + '</div><div class="row-detail">' + escapeHtml(item.detail || '') + '</div>' + relationshipRowHtml(item) + '</div>' +
         '<div class="row-side"><div class="badge">' + escapeHtml(item.badge) + '</div>' + actionButtons(item) + previewButton(item) + '</div>' +

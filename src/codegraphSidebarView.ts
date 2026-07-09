@@ -13,6 +13,7 @@ import {
   CodegraphSearchMode,
 } from "./codegraphCli";
 import { CODEGRAPH_SKILL_TARGET_ROOTS } from "./codegraphSkills";
+import { getWebviewBaseStyles } from "./webviewDesign";
 import { webviewIcon } from "./webviewIcons";
 
 interface SidebarState {
@@ -263,6 +264,7 @@ function sidebarHtml(nonce: string): string {
 
 function sidebarStyles(): string {
   return `
+    ${getWebviewBaseStyles()}
     body {
       margin: 0;
       color: var(--vscode-sideBar-foreground);
@@ -273,20 +275,16 @@ function sidebarStyles(): string {
       font-kerning: normal;
       text-rendering: optimizeLegibility;
     }
-    [hidden] { display: none !important; }
     .sidebar { display: grid; gap: 8px; padding: 10px; }
     .status { display: grid; gap: 3px; color: var(--vscode-descriptionForeground); }
     .status strong { color: var(--vscode-foreground); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .status span { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
     .filters { display: grid; grid-template-columns: 1fr 1fr 58px; gap: 6px; }
-    input, select, button { box-sizing: border-box; min-width: 0; min-height: 28px; border-radius: 4px; font-family: inherit; }
-    input, select { width: 100%; border: 1px solid var(--vscode-input-border); color: var(--vscode-input-foreground); background: var(--vscode-input-background); padding: 5px 7px; }
-    select { border-color: var(--vscode-dropdown-border); color: var(--vscode-dropdown-foreground); background: var(--vscode-dropdown-background); }
-    input:disabled, select:disabled { opacity: 0.52; cursor: not-allowed; }
-    button { border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); padding: 4px 7px; font-weight: 600; cursor: pointer; }
-    button:hover { background: var(--vscode-button-secondaryHoverBackground); }
-    .actions { display: grid; gap: 6px; }
+    input, select { min-height: 28px; padding: 5px 7px; }
+    button { min-height: 28px; padding: 4px 7px; color: var(--cg-button-secondary-fg); background: var(--cg-button-secondary-bg); font-weight: 600; }
+    button:hover { background: var(--cg-button-secondary-bg-hover); }
+    .actions { display: grid; gap: 6px; min-width: 0; }
     .result-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); }
     .workspace-actions { grid-template-columns: repeat(3, minmax(0, 1fr)); }
     .actions button,
@@ -340,19 +338,27 @@ function sidebarStyles(): string {
       white-space: nowrap;
     }
     .meta { color: var(--vscode-descriptionForeground); font-size: 11px; }
-    .error { color: var(--vscode-errorForeground); font-size: 12px; line-height: 1.35; }
+    .error { font-size: 12px; line-height: 1.35; }
     .results { display: grid; gap: 1px; }
-    .empty { color: var(--vscode-descriptionForeground); line-height: 1.45; padding: 12px 2px; }
-    .empty strong { display: block; margin-bottom: 4px; color: var(--vscode-foreground); }
+    .empty { padding: 12px 2px; }
+    .empty strong { margin-bottom: 4px; }
     .empty-actions { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 10px; }
     .empty-actions button { width: 100%; text-align: left; min-height: 30px; }
     .row { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px; padding: 7px 4px; border-radius: 4px; cursor: pointer; }
     .row:hover, .row.selected, .row:focus-visible { background: var(--vscode-list-hoverBackground); }
-    .row:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+    .row:focus-visible { outline-offset: -1px; }
     .row input { width: 14px; height: 14px; min-height: 0; margin-top: 2px; padding: 0; }
-    .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+    .title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 600; }
     .detail, .sig { margin-top: 2px; color: var(--vscode-descriptionForeground); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; }
     .kind { color: var(--vscode-badge-foreground); background: var(--vscode-badge-background); border-radius: 999px; padding: 1px 6px; font-size: 10px; margin-right: 4px; }
+    @media (max-width: 220px) {
+      .search,
+      .filters { grid-template-columns: 1fr; }
+      .result-actions,
+      .workspace-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .command-row { grid-template-columns: minmax(0, 1fr); }
+      #copyCommand { width: 100%; }
+    }
   `;
 }
 
@@ -478,7 +484,7 @@ function sidebarScript(): string {
       const key = resultKey(item);
       const location = item.file + (item.line ? ':' + item.line : '') + (item.column ? ':' + item.column : '');
       const sig = item.signature || item.detail || '';
-      return '<div class="row" tabindex="0" role="button" data-index="' + index + '"><input type="checkbox" data-check="' + index + '"' + (state.selected[key] ? ' checked' : '') + '><div><div class="title"><span class="kind">' + escapeHtml(item.kind || 'symbol') + '</span>' + escapeHtml(item.name || item.file) + '</div><div class="detail">' + escapeHtml(location) + '</div>' + (sig ? '<div class="sig">' + escapeHtml(sig) + '</div>' : '') + '</div></div>';
+      return '<div class="row" tabindex="0" role="button" data-index="' + index + '"><input type="checkbox" data-check="' + index + '" aria-label="Select ' + escapeHtml(item.name || item.file || 'result') + '"' + (state.selected[key] ? ' checked' : '') + '><div><div class="title"><span class="kind">' + escapeHtml(item.kind || 'symbol') + '</span>' + escapeHtml(item.name || item.file) + '</div><div class="detail">' + escapeHtml(location) + '</div>' + (sig ? '<div class="sig">' + escapeHtml(sig) + '</div>' : '') + '</div></div>';
     }
     function emptyStateHtml() {
       if (state.error) {

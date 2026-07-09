@@ -239,45 +239,56 @@ export function getGraphInteractionScript(): string {
       const height = Math.max(1, els.network.clientHeight || els.clusterOverlay.clientHeight || 1);
       els.clusterOverlay.setAttribute('viewBox', '0 0 ' + width + ' ' + height);
       const positions = state.network.getPositions();
+      if (state.activeClusterKey && state.activeClusterNodeIds && state.activeClusterNodeIds.size) {
+        const activeGroup = clusterGroupFromNodeIds(
+          state.activeClusterKey,
+          state.activeClusterLabel || clusterLabel(state.activeClusterKey),
+          [...state.activeClusterNodeIds],
+          positions,
+          width,
+          height
+        );
+        if (!activeGroup) {
+          els.clusterOverlay.innerHTML = '';
+          return;
+        }
+        state.clusterGroups = new Map([[activeGroup.key, activeGroup]]);
+        els.clusterOverlay.innerHTML = renderClusterHulls([activeGroup], width, height);
+        attachClusterOverlayHandlers();
+        return;
+      }
       const groups = new Map();
       state.graph.nodes.forEach((node) => {
         if (node.type === 'root' || node.type === 'more' || !positions[node.id]) { return; }
         const key = clusterKeyForNode(node);
         if (!key) { return; }
-        if (state.activeClusterKey && key !== state.activeClusterKey) { return; }
         const point = state.network.canvasToDOM(positions[node.id]);
         if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) { return; }
         const group = groups.get(key) || {
           key,
           label: clusterLabel(key),
           color: flowPaletteColor(node) || state.theme.flowCyan,
-          points: []
+          points: [],
+          nodeIds: []
         };
         group.points.push(point);
+        group.nodeIds.push(node.id);
         groups.set(key, group);
       });
       const clusters = [...groups.values()]
         .filter((group) => group.points.length >= 3)
         .sort((left, right) => right.points.length - left.points.length)
         .slice(0, 7)
-        .map((group) => {
-          const xs = group.points.map((point) => point.x);
-          const ys = group.points.map((point) => point.y);
-          const pad = Math.min(42, Math.max(24, 18 + group.points.length * 0.45));
-          const x = Math.max(-pad, Math.min(...xs) - pad);
-          const y = Math.max(-pad, Math.min(...ys) - pad);
-          const rectWidth = Math.min(width + pad * 2, Math.max(...xs) - Math.min(...xs) + pad * 2);
-          const rectHeight = Math.min(height + pad * 2, Math.max(...ys) - Math.min(...ys) + pad * 2);
-          return {
-            ...group,
-            x,
-            y,
-            width: rectWidth,
-            height: rectHeight
-          };
-        })
+        .map((group) => clusterGroupWithBounds(group, positions, width, height))
+        .filter(Boolean)
         .filter((group) => group.width > 44 && group.height > 34);
-      els.clusterOverlay.innerHTML = clusters.map((group) => {
+      state.clusterGroups = new Map(clusters.map((group) => [group.key, group]));
+      els.clusterOverlay.innerHTML = renderClusterHulls(clusters, width, height);
+      attachClusterOverlayHandlers();
+    }
+
+    function renderClusterHulls(clusters, width, height) {
+      return clusters.map((group) => {
         const labelX = Math.min(width - 24, Math.max(10, group.x + 16));
         const labelY = Math.min(height - 10, Math.max(18, group.y + 18));
         const active = state.activeClusterKey === group.key;
@@ -286,7 +297,66 @@ export function getGraphInteractionScript(): string {
           '<text class="cluster-label" x="' + roundNumber(labelX) + '" y="' + roundNumber(labelY) + '">' + escapeHtml(trimLabel(group.label, 42)) + '</text>' +
         '</g>';
       }).join('');
-      attachClusterOverlayHandlers();
+    }
+
+    function clusterGroupWithBounds(group, positions, width, height) {
+      const bounds = clusterBounds(group.points, width, height);
+      if (!bounds) { return undefined; }
+      return {
+        ...group,
+        ...bounds,
+        bounds,
+        nodeIds: nodeIdsInsideBounds(bounds, positions)
+      };
+    }
+
+    function clusterGroupFromNodeIds(key, label, nodeIds, positions, width, height) {
+      const idSet = new Set(nodeIds || []);
+      const nodes = state.graph.nodes.filter((node) => idSet.has(node.id) && positions[node.id]);
+      const points = nodes.map((node) => state.network.canvasToDOM(positions[node.id])).filter((point) => point && Number.isFinite(point.x) && Number.isFinite(point.y));
+      const bounds = clusterBounds(points, width, height);
+      if (!bounds) { return undefined; }
+      const firstNode = nodes[0];
+      return {
+        key,
+        label,
+        color: firstNode ? flowPaletteColor(firstNode) || state.theme.flowCyan : state.theme.flowCyan,
+        points,
+        nodeIds: [...idSet],
+        ...bounds,
+        bounds
+      };
+    }
+
+    function clusterBounds(points, width, height) {
+      if (!points || !points.length) { return undefined; }
+      const xs = points.map((point) => point.x);
+      const ys = points.map((point) => point.y);
+      const pad = Math.min(42, Math.max(24, 18 + points.length * 0.45));
+      const x = Math.max(-pad, Math.min(...xs) - pad);
+      const y = Math.max(-pad, Math.min(...ys) - pad);
+      return {
+        x,
+        y,
+        width: Math.min(width + pad * 2, Math.max(...xs) - Math.min(...xs) + pad * 2),
+        height: Math.min(height + pad * 2, Math.max(...ys) - Math.min(...ys) + pad * 2)
+      };
+    }
+
+    function nodeIdsInsideBounds(bounds, positions) {
+      return state.graph.nodes
+        .filter((node) => node.type !== 'more' && positions[node.id])
+        .filter((node) => {
+          const point = state.network.canvasToDOM(positions[node.id]);
+          return point &&
+            Number.isFinite(point.x) &&
+            Number.isFinite(point.y) &&
+            point.x >= bounds.x &&
+            point.x <= bounds.x + bounds.width &&
+            point.y >= bounds.y &&
+            point.y <= bounds.y + bounds.height;
+        })
+        .map((node) => node.id);
     }
 
     function scheduleClusterOverlayRender(force) {
@@ -320,7 +390,12 @@ export function getGraphInteractionScript(): string {
 
     function selectCluster(key, label) {
       if (!key) { return; }
+      const group = state.clusterGroups && state.clusterGroups.get ? state.clusterGroups.get(key) : undefined;
+      const activeNodeIds = group && group.nodeIds && group.nodeIds.length
+        ? group.nodeIds
+        : state.graph.nodes.filter((node) => clusterKeyForNode(node) === key).map((node) => node.id);
       if (state.activeClusterKey === key) {
+        if (activeNodeIds.length) { state.activeClusterNodeIds = new Set(activeNodeIds); }
         pauseGraphMotionForCluster();
         setDetailsOpen(true);
         showClusterDetails();
@@ -329,6 +404,7 @@ export function getGraphInteractionScript(): string {
       }
       state.activeClusterKey = key;
       state.activeClusterLabel = label || clusterLabel(key);
+      state.activeClusterNodeIds = new Set(activeNodeIds);
       state.focusOnly = false;
       state.selectedId = '';
       state.focusIds = new Set();
@@ -356,6 +432,8 @@ export function getGraphInteractionScript(): string {
       if (!state.activeClusterKey) { return; }
       state.activeClusterKey = '';
       state.activeClusterLabel = '';
+      state.activeClusterNodeIds = new Set();
+      state.clusterGroups = new Map();
       updateFocusStyles();
       renderMiniMap();
       renderClusterOverlay(true);
@@ -366,7 +444,11 @@ export function getGraphInteractionScript(): string {
     }
 
     function clusterNodeMatches(node, key) {
-      return Boolean(key && clusterKeyForNode(node) === key);
+      if (!key) { return false; }
+      if (state.activeClusterKey === key && state.activeClusterNodeIds && state.activeClusterNodeIds.size) {
+        return state.activeClusterNodeIds.has(node.id);
+      }
+      return clusterKeyForNode(node) === key;
     }
 
     function clusterKeyForNode(node) {

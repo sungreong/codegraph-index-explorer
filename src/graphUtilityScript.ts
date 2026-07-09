@@ -110,6 +110,8 @@ export function getGraphUtilityScript(): string {
       if (clearCluster) {
         state.activeClusterKey = '';
         state.activeClusterLabel = '';
+        state.activeClusterNodeIds = new Set();
+        state.clusterGroups = new Map();
       }
     }
 
@@ -655,10 +657,14 @@ export function getGraphUtilityScript(): string {
     }
 
     function closeAdvancedControls() {
-      if (els.advancedControls.open) { els.advancedControls.open = false; }
+      if (els.advancedControls.open) {
+        els.advancedControls.open = false;
+        syncDisclosureAria(els.advancedControls);
+      }
       if (document.querySelectorAll) {
         document.querySelectorAll('.action-menu[open]').forEach((menu) => {
           menu.open = false;
+          syncDisclosureAria(menu);
         });
       }
     }

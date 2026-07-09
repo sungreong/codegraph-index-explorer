@@ -19,6 +19,7 @@ assert.match(html, /activityPanel/);
 assert.match(html, /activityList/);
 assert.match(html, /Graph activity/);
 assert.match(html, /Refresh graph data/);
+assert.match(html, /aria-expanded="false"/);
 assert.match(html, /graph-icon/);
 assert.match(html, /graphNetwork/);
 assert.match(html, /state-card loading/);

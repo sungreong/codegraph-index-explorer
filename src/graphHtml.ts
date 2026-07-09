@@ -25,7 +25,7 @@ export function getGraphHtml(nonce: string): string {
         <div class="index-freshness" id="indexFreshness" title="Codegraph index freshness">Index unknown</div>
         <button class="panel-toggle" id="toggleControls" type="button" title="Hide graph controls" aria-label="Hide graph controls" aria-expanded="true">Controls</button>
         <button class="panel-toggle" id="toggleDetailsTop" type="button" title="Show details" aria-label="Show details" aria-expanded="false">Details</button>
-        <button class="activity-strip" id="graphActivity" type="button" title="Show graph activity" aria-label="Show graph activity">No graph loaded</button>
+        <button class="activity-strip" id="graphActivity" type="button" title="Show graph activity" aria-label="Show graph activity" aria-expanded="false">No graph loaded</button>
         <button class="activity-refresh" id="refreshGraphActivity" type="button" title="Refresh graph data" aria-label="Refresh graph data">${graphIcon("refresh")}</button>
         <div class="activity-panel" id="activityPanel" hidden>
           <div class="activity-panel-head">
@@ -57,7 +57,7 @@ export function getGraphHtml(nonce: string): string {
         <button class="icon-button ghost" id="fitView" type="button" title="Fit view" aria-label="Fit view">${graphIcon("fit")}</button>
         <button class="icon-button ghost" id="toggleDetails" type="button" title="Show details" aria-label="Show details">${graphIcon("info")}</button>
         <details class="action-menu" id="viewActions">
-          <summary class="menu-button ghost" title="View actions" aria-label="View actions">View</summary>
+          <summary class="menu-button ghost" title="View actions" aria-label="View actions" aria-expanded="false">View</summary>
           <div class="action-menu-panel">
             <button class="ghost menu-action" id="resetView" type="button" title="Reset view" aria-label="Reset view"><span>${graphIcon("refresh")}</span>Reset view</button>
             <button class="ghost menu-action" id="stepLimitDown" type="button" title="Show fewer nodes" aria-label="Show fewer nodes"><span>${graphIcon("minus")}</span>Fewer nodes</button>
@@ -72,7 +72,7 @@ export function getGraphHtml(nonce: string): string {
           </div>
         </details>
         <details class="action-menu" id="exportActions">
-          <summary class="menu-button ghost" title="Export and copy" aria-label="Export and copy">Export</summary>
+          <summary class="menu-button ghost" title="Export and copy" aria-label="Export and copy" aria-expanded="false">Export</summary>
           <div class="action-menu-panel">
             <button class="ghost menu-action" id="exportPng" type="button" title="Export PNG" aria-label="Export PNG"><span>${graphIcon("download")}</span>PNG</button>
             <button class="ghost menu-action" id="exportJson" type="button" title="Export graph JSON" aria-label="Export graph JSON"><span>${graphIcon("fileJson")}</span>JSON</button>
@@ -80,7 +80,7 @@ export function getGraphHtml(nonce: string): string {
           </div>
         </details>
         <details class="advanced-controls" id="advancedControls">
-          <summary class="icon-button ghost" title="Graph options" aria-label="Graph options">${graphIcon("settings")}</summary>
+          <summary class="icon-button ghost" title="Graph options" aria-label="Graph options" aria-expanded="false">${graphIcon("settings")}</summary>
           <div class="advanced-panel">
             <label><span>Kind</span>
         <select id="kind" title="Symbol kind">

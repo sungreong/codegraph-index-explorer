@@ -46,6 +46,7 @@ assert.match(script, /List impact/);
 assert.match(script, /graph-cue/);
 assert.match(script, /role = item\.action === 'openResult' \? 'option' : 'button'/);
 assert.match(script, /aria-selected/);
+assert.match(script, /tab\.setAttribute\('aria-selected', String\(active\)\)/);
 assert.match(script, /els\.query\.addEventListener\('keydown'/);
 assert.match(script, /event\.key === 'ArrowDown' && focusSelectedResult\(\)/);
 assert.match(script, /function selectResultRow/);
@@ -89,6 +90,9 @@ assert.match(script, /isInteractiveTarget\(event\.target\) && event\.target !== 
 assert.doesNotMatch(script, /data-related/);
 
 assert.match(styles, /\.inline-detail/);
+assert.match(styles, /--cg-control-height/);
+assert.match(styles, /--cg-focus-ring/);
+assert.match(styles, /button\.primary-action/);
 assert.match(styles, /\.detail-grid/);
 assert.match(styles, /\.action-tab/);
 assert.match(styles, /\.search-workbench/);

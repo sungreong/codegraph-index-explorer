@@ -1,6 +1,8 @@
+import { getWebviewBaseStyles } from "./webviewDesign";
+
 export function getDashboardStyles(): string {
   return `
-    :root { color-scheme: light dark; }
+    ${getWebviewBaseStyles()}
     body {
       margin: 0;
       color: var(--vscode-foreground);
@@ -9,14 +11,9 @@ export function getDashboardStyles(): string {
       font-size: var(--vscode-font-size);
       line-height: 1.42;
     }
-    .shell { height: 100vh; min-height: 0; display: grid; grid-template-rows: auto auto 1fr; }
+    .shell { height: 100vh; min-height: 0; display: grid; grid-template-rows: auto 1fr; }
     header {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr);
-      gap: 4px;
-      padding: 12px 18px 11px;
-      border-bottom: 1px solid var(--vscode-panel-border);
-      background: var(--vscode-sideBar-background);
+      display: none;
     }
     h1 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: 0; }
     .subtitle, .muted { color: var(--vscode-descriptionForeground); line-height: 1.45; }
@@ -24,36 +21,40 @@ export function getDashboardStyles(): string {
     .status-row {
       display: grid;
       grid-template-columns: repeat(4, minmax(120px, 1fr));
-      gap: 10px;
-      padding: 10px 18px;
+      gap: 8px;
+      padding: 6px 18px;
       border-bottom: 1px solid var(--vscode-panel-border);
       background: color-mix(in srgb, var(--vscode-editor-background) 72%, var(--vscode-sideBar-background));
       overflow-x: auto;
     }
     .metric {
       position: relative;
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
-      padding: 7px 10px 7px 12px;
+      padding: 5px 9px 5px 11px;
       background: var(--vscode-editorWidget-background);
       min-width: 0;
     }
     .metric::before {
       content: "";
       position: absolute;
-      inset: 8px auto 8px 0;
+      inset: 7px auto 7px 0;
       width: 2px;
       border-radius: 999px;
       background: var(--vscode-focusBorder);
       opacity: 0.72;
     }
-    .metric-label { color: var(--vscode-descriptionForeground); font-size: 12px; margin-bottom: 4px; }
-    .metric-value { font-size: 15px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .metric-label { color: var(--vscode-descriptionForeground); font-size: 11px; margin-bottom: 0; }
+    .metric-value { font-size: 13px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     main { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
     .tabs {
       display: flex;
       gap: 4px;
-      padding: 8px 18px 0;
+      padding: 5px 18px 0;
       border-bottom: 1px solid var(--vscode-panel-border);
       background: var(--vscode-editor-background);
     }
@@ -63,19 +64,20 @@ export function getDashboardStyles(): string {
       border: 1px solid transparent;
       border-bottom: 0;
       border-radius: 6px 6px 0 0;
-      padding: 8px 12px;
-      min-height: 34px;
+      padding: 5px 11px;
+      min-height: 28px;
     }
     .tab.active { background: var(--vscode-editorWidget-background); border-color: var(--vscode-panel-border); }
-    .tab:focus-visible, button:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: 2px; }
+    .tab[aria-selected="true"] { background: var(--vscode-editorWidget-background); border-color: var(--vscode-panel-border); }
     .tab-panels { min-height: 0; display: grid; }
     section.tab-panel { min-width: 0; min-height: 0; display: none; flex-direction: column; container-type: inline-size; }
     section.tab-panel.active { display: flex; }
     .section-head { padding: 14px 16px 10px; border-bottom: 1px solid var(--vscode-panel-border); }
     #tab-search .section-head {
       display: grid;
-      gap: 8px;
-      padding: 14px 16px;
+      grid-template-columns: minmax(0, 1fr) max-content;
+      gap: 6px;
+      padding: 8px 14px;
       background: color-mix(in srgb, var(--vscode-sideBar-background) 74%, var(--vscode-editor-background));
     }
     .section-title {
@@ -85,16 +87,25 @@ export function getDashboardStyles(): string {
       text-transform: uppercase;
       color: var(--vscode-descriptionForeground);
     }
-    #tab-search .section-title { margin-bottom: 2px; }
-    .search-box { display: grid; grid-template-columns: 1fr minmax(140px, auto) auto; gap: 8px; }
+    #tab-search .section-title {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      margin: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+    .search-box { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr minmax(140px, auto) auto; gap: 6px; }
     .head-tools { display: grid; grid-template-columns: 1fr minmax(140px, 0.35fr) auto; gap: 8px; align-items: center; }
-    .option-grid { display: grid; grid-template-columns: minmax(150px, 0.6fr) minmax(150px, 0.6fr) 88px 88px; gap: 8px; margin-top: 8px; }
+    .option-grid { grid-column: 1 / 2; display: grid; grid-template-columns: minmax(150px, 0.6fr) minmax(150px, 0.6fr) 88px 88px; gap: 6px; margin-top: 0; }
     .agent-copy-panel {
+      grid-column: 1 / -1;
       display: grid;
       grid-template-columns: minmax(0, 1fr) max-content;
-      gap: 8px;
+      gap: 6px;
       align-items: center;
-      margin-top: 8px;
+      margin-top: 0;
     }
     .agent-copy-actions {
       display: flex;
@@ -123,48 +134,15 @@ export function getDashboardStyles(): string {
       background: var(--vscode-sideBar-background);
       container-type: inline-size;
     }
-    input, select {
-      box-sizing: border-box;
-      border-radius: 4px;
-      outline: none;
-      color: var(--vscode-input-foreground);
-      background: var(--vscode-input-background);
-    }
     input {
-      width: 100%;
-      border: 1px solid var(--vscode-input-border);
-      min-height: 30px;
       padding: 7px 9px;
     }
     select {
-      border: 1px solid var(--vscode-dropdown-border);
-      min-height: 30px;
       padding: 6px 8px;
-      color: var(--vscode-dropdown-foreground);
-      background: var(--vscode-dropdown-background);
-    }
-    input:focus, select:focus { border-color: var(--vscode-focusBorder); }
-    input:disabled, select:disabled {
-      opacity: 0.52;
-      cursor: not-allowed;
     }
     button {
-      border: 1px solid var(--vscode-button-border, transparent);
-      border-radius: 4px;
-      min-height: 30px;
       padding: 7px 11px;
-      color: var(--vscode-button-foreground);
-      background: var(--vscode-button-background);
-      cursor: pointer;
       font-weight: 600;
-      letter-spacing: 0;
-    }
-    button:hover { background: var(--vscode-button-hoverBackground); }
-    button.ghost { color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
-    button.ghost:hover { background: var(--vscode-button-secondaryHoverBackground); }
-    button:disabled {
-      opacity: 0.48;
-      cursor: not-allowed;
     }
     button.with-icon {
       display: inline-flex;
@@ -514,7 +492,9 @@ export function getDashboardStyles(): string {
     .empty-actions button { min-height: 30px; }
     .error { padding: 10px 16px; color: var(--vscode-errorForeground); border-bottom: 1px solid var(--vscode-panel-border); }
     .command-details {
-      margin-top: 8px;
+      grid-column: 2 / 3;
+      align-self: center;
+      margin-top: 0;
       color: var(--vscode-descriptionForeground);
       font-size: 11px;
     }
@@ -529,12 +509,16 @@ export function getDashboardStyles(): string {
       cursor: pointer;
       user-select: none;
     }
+    .command-details[open] {
+      grid-column: 1 / -1;
+      align-self: stretch;
+    }
     .command-details summary:focus-visible {
       outline: 1px solid var(--vscode-focusBorder);
       outline-offset: 2px;
     }
     .preview-box {
-      margin-top: 8px;
+      margin-top: 6px;
       border: 1px solid var(--vscode-panel-border);
       border-radius: 6px;
       padding: 8px;
@@ -629,14 +613,21 @@ export function getDashboardStyles(): string {
     }
     @media (max-width: 560px) {
       header { padding: 10px 12px; }
-      .status-row { padding: 8px 12px; gap: 6px; }
-      .tabs { padding: 7px 12px 0; overflow-x: auto; }
-      .tab { padding: 7px 9px; }
+      .status-row { padding: 5px 12px; gap: 6px; }
+      .metric { grid-template-columns: 1fr; gap: 2px; }
+      .tabs { padding: 5px 12px 0; overflow-x: auto; }
+      .tab { padding: 5px 9px; }
       .section-head { padding: 10px 12px; }
       .search-box,
       .head-tools,
       .agent-copy-panel,
       .option-grid { grid-template-columns: 1fr; }
+      #tab-search .section-head,
+      .search-box,
+      .option-grid,
+      .agent-copy-panel,
+      .command-details,
+      .command-details[open] { grid-column: 1 / -1; }
       .agent-copy-actions { justify-content: flex-start; }
       .toolbar { align-items: flex-start; flex-direction: column; }
       .pager { flex-wrap: wrap; white-space: normal; }

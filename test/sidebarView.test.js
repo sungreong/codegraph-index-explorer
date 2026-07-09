@@ -55,6 +55,8 @@ assert.match(html, /Find code in seconds/);
 assert.match(html, /Try search: extension/);
 assert.match(html, /Open file structure graph/);
 assert.match(html, /\[hidden\] \{ display: none !important; \}/);
+assert.match(html, /--cg-control-height/);
+assert.match(html, /--cg-focus-ring/);
 assert.match(html, /Any kind/);
 assert.doesNotMatch(html, />All<\/button>/);
 assert.doesNotMatch(html, /<div class="nav">/);
@@ -62,6 +64,7 @@ assert.match(html, /Codegraph command:/);
 assert.match(html, /selectedItemsOrAll/);
 assert.match(html, /function commandPreview/);
 assert.match(html, /loadingQuery/);
+assert.match(html, /aria-label="Select ' \+ escapeHtml\(item\.name \|\| item\.file \|\| 'result'\) \+ '"/);
 assert.match(html, /window\.setTimeout\(\(\) => postSearch\(query\), 120\)/);
 assert.doesNotMatch(html, /Question for agent prompt/);
 
