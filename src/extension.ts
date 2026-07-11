@@ -17,6 +17,8 @@ import { CodegraphGraphPanel } from "./codegraphGraphPanel";
 import { CODEGRAPH_SKILL_TARGET_ROOTS, syncBundledCodegraphSkills } from "./codegraphSkills";
 import { CodegraphSidebarView } from "./codegraphSidebarView";
 
+const CODEGRAPH_REPOSITORY_URL = "https://github.com/colbymchenry/codegraph";
+
 export function activate(context: vscode.ExtensionContext): void {
   let sidebarView: CodegraphSidebarView;
   sidebarView = new CodegraphSidebarView(
@@ -40,6 +42,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("codegraph.listFiles", listIndexedFiles),
     vscode.commands.registerCommand("codegraph.refresh", () => refreshStatus(true)),
     vscode.commands.registerCommand("codegraph.syncBundledSkills", () => syncBundledSkills(context)),
+    vscode.commands.registerCommand("codegraph.copySetupPrompt", copyCodegraphSetupPrompt),
+    vscode.commands.registerCommand("codegraph.openSetupGuide", openCodegraphSetupGuide),
     vscode.window.registerWebviewViewProvider("codegraph.actions", sidebarView, {
       webviewOptions: { retainContextWhenHidden: true },
     }),
@@ -207,6 +211,11 @@ async function syncBundledSkills(context: vscode.ExtensionContext): Promise<void
     return;
   }
 
+  const selectedTargets = await selectSkillTargets();
+  if (!selectedTargets) {
+    return;
+  }
+
   const report = await runCommand("sync bundled Codegraph skills", () => vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -216,6 +225,7 @@ async function syncBundledSkills(context: vscode.ExtensionContext): Promise<void
     () => syncBundledCodegraphSkills({
       extensionPath: context.extensionPath,
       workspacePath: folder.uri.fsPath,
+      targetRootIds: selectedTargets,
     }),
   ));
 
@@ -228,6 +238,59 @@ async function syncBundledSkills(context: vscode.ExtensionContext): Promise<void
   vscode.window.showInformationMessage(
     `Synced ${report.skills.length} Codegraph skills to ${targetSummary}: ${changed} changed, ${report.unchanged} unchanged, ${report.skipped} skipped.`,
   );
+}
+
+async function selectSkillTargets(): Promise<string[] | undefined> {
+  const selected = await vscode.window.showQuickPick(
+    CODEGRAPH_SKILL_TARGET_ROOTS.map((target) => ({
+      label: target.label,
+      description: target.relativePath,
+      detail: "Install the bundled Codegraph skills in this workspace location",
+      targetId: target.id,
+    })),
+    {
+      canPickMany: true,
+      ignoreFocusOut: true,
+      title: "Choose where to install bundled Codegraph skills",
+      placeHolder: "Select one or more destinations. Nothing is selected by default.",
+    },
+  );
+
+  if (!selected || selected.length === 0) {
+    return undefined;
+  }
+
+  return selected.map((target) => target.targetId);
+}
+
+async function copyCodegraphSetupPrompt(): Promise<void> {
+  await vscode.env.clipboard.writeText(getCodegraphSetupPrompt());
+  const action = await vscode.window.showInformationMessage(
+    "Copied a Codegraph setup prompt. Paste it into your coding agent, then refresh Codegraph after it creates .codegraph.",
+    "Open official guide",
+  );
+  if (action === "Open official guide") {
+    await openCodegraphSetupGuide();
+  }
+}
+
+async function openCodegraphSetupGuide(): Promise<void> {
+  await vscode.env.openExternal(vscode.Uri.parse(CODEGRAPH_REPOSITORY_URL));
+}
+
+function getCodegraphSetupPrompt(): string {
+  return [
+    "Set up Codegraph for the currently opened VS Code workspace.",
+    "",
+    `Use the official Codegraph repository as the source of truth: ${CODEGRAPH_REPOSITORY_URL}`,
+    "",
+    "Please:",
+    "1. Inspect the repository's current installation and initialization instructions.",
+    "2. Check whether Node.js, npm, and the codegraph CLI are already available.",
+    "3. If anything must be installed or changed outside this workspace, explain the exact command and ask for my approval before doing it.",
+    "4. Initialize this workspace so it contains .codegraph, then verify it with `codegraph --version` and the appropriate status command.",
+    "5. Summarize what changed and any next step. Do not overwrite my existing workspace files without asking.",
+  ].join("\n");
 }
 
 function summarizeSkillTargetRoots(workspacePath: string, targetRoots: string[]): string {

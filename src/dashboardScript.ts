@@ -87,6 +87,9 @@ export function getDashboardScript(): string {
         loadFilesFromCodegraph();
         activateTab('files');
       }
+      if (action === 'copy-setup-prompt') { vscode.postMessage({ type: 'copySetupPrompt' }); }
+      if (action === 'open-setup-guide') { vscode.postMessage({ type: 'openSetupGuide' }); }
+      if (action === 'sync-skills') { vscode.postMessage({ type: 'syncBundledSkills' }); }
     });
     restoreDashboardInputs();
     persistDashboardState();
@@ -151,8 +154,30 @@ export function getDashboardScript(): string {
       els.filesMetric.textContent = formatNumber(state.status && state.status.fileCount);
       els.nodesMetric.textContent = formatNumber(state.status && state.status.nodeCount);
       els.edgesMetric.textContent = formatNumber(state.status && state.status.edgeCount);
+      setWorkspaceControlsEnabled(Boolean(state.active));
+      if (!state.active) {
+        renderSetupState();
+        if (state.activeTab) { activateTab(state.activeTab); }
+        return;
+      }
       setError(els.fileError, state.error); renderFiles(); renderResults(); renderContext(); renderCommandPreview(); syncSearchControls();
       if (state.activeTab) { activateTab(state.activeTab); }
+    }
+    function setWorkspaceControlsEnabled(enabled) {
+      document.querySelectorAll('#searchForm input, #searchForm select, #searchForm button, .option-grid input, .option-grid select, .agent-copy-panel input, .agent-copy-panel button, #tab-files input, #tab-files select, #tab-files button, #openGraph').forEach((element) => { element.disabled = !enabled; });
+    }
+    function renderSetupState() {
+      const error = state.error ? '<p>' + escapeHtml(state.error) + '</p>' : '';
+      const setup = '<div class="empty setup-empty"><strong>Set up Codegraph to explore this workspace</strong><p>Copy a guided setup request for your coding agent, or consult the official project before installing anything.</p>' + error + '<div class="empty-actions"><button class="primary" type="button" data-dashboard-action="copy-setup-prompt">Copy setup prompt for an agent</button><button class="ghost" type="button" data-dashboard-action="sync-skills">Choose bundled skill destinations</button></div><button class="text-action" type="button" data-dashboard-action="open-setup-guide">Open colbymchenry/codegraph ↗</button></div>';
+      els.results.innerHTML = setup;
+      els.files.innerHTML = setup;
+      els.context.innerHTML = setup;
+      els.selectionPanel.innerHTML = '<div class="empty">Set up Codegraph first. Search results and relationship details will appear here after the workspace is indexed.</div>';
+      els.resultsCount.textContent = 'Codegraph not initialized';
+      els.selectionCount.textContent = '';
+      els.filesCount.textContent = 'Codegraph not initialized';
+      setError(els.searchError, undefined);
+      setError(els.fileError, undefined);
     }
     function activateTab(name) {
       document.querySelectorAll('.tab[data-tab]').forEach((tab) => {

@@ -38,6 +38,9 @@ type DashboardMessage =
   | { type: "relationshipSummary"; symbol?: string; cacheKey?: string; limit?: number; depth?: number }
   | { type: "loadFiles"; filter?: string; pattern?: string; requestId?: number }
   | { type: "copyText"; text?: string; label?: string }
+  | { type: "copySetupPrompt" }
+  | { type: "openSetupGuide" }
+  | { type: "syncBundledSkills" }
   | ({ type: "openGraph" } & GraphSeed)
   | { type: "openFile"; item?: CodegraphFileResult }
   | { type: "openRelated"; item?: CodegraphRelatedResult }
@@ -153,6 +156,21 @@ export class CodegraphDashboardPanel {
 
     if (message.type === "copyText") {
       await this.copyText(message.text, message.label);
+      return;
+    }
+
+    if (message.type === "copySetupPrompt") {
+      await vscode.commands.executeCommand("codegraph.copySetupPrompt");
+      return;
+    }
+
+    if (message.type === "openSetupGuide") {
+      await vscode.commands.executeCommand("codegraph.openSetupGuide");
+      return;
+    }
+
+    if (message.type === "syncBundledSkills") {
+      await vscode.commands.executeCommand("codegraph.syncBundledSkills");
       return;
     }
 

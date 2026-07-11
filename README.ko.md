@@ -245,7 +245,9 @@ Graph Explorer는 별도 패널에서 열리며 관계 그래프를 보여줍니
 | `Codegraph: Show Status` | 현재 Codegraph 워크스페이스 상태를 보여줍니다. |
 | `Codegraph: List Indexed Files` | 인덱싱된 파일 목록을 봅니다. |
 | `Codegraph: Refresh` | 확장 캐시를 지우고 상태와 사이드바 데이터를 새로고침합니다. |
-| `Codegraph: Install Bundled Agent Skills` | 포함된 Codegraph 스킬을 한 번에 `codegraph_skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, `.gemini/skills`, `.cursor/skills`로 복사하고 폴더가 없으면 생성합니다. |
+| `Codegraph: Install Bundled Agent Skills (Choose Destinations)` | 포함된 Codegraph 스킬을 설치할 워크스페이스 위치를 하나 이상 선택합니다. 선택한 위치에만 파일을 씁니다. |
+| `Codegraph: Copy Agent Setup Prompt` | 현재 워크스페이스에 Codegraph를 설치하고 초기화하도록 에이전트에 전달할 안전한 프롬프트를 복사합니다. |
+| `Codegraph: Open Official Setup Guide` | 공식 [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) 저장소를 엽니다. |
 
 ## 설정
 

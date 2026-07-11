@@ -33,6 +33,8 @@ type SidebarMessage =
   | { type: "openDashboard" }
   | { type: "openGraph" }
   | { type: "syncBundledSkills" }
+  | { type: "copySetupPrompt" }
+  | { type: "openSetupGuide" }
   | { type: "refresh" }
   | { type: "openResult"; item?: CodegraphSearchResult }
   | { type: "copy"; text?: string; label?: string };
@@ -153,6 +155,16 @@ export class CodegraphSidebarView implements vscode.WebviewViewProvider {
       return;
     }
 
+    if (message.type === "copySetupPrompt") {
+      await vscode.commands.executeCommand("codegraph.copySetupPrompt");
+      return;
+    }
+
+    if (message.type === "openSetupGuide") {
+      await vscode.commands.executeCommand("codegraph.openSetupGuide");
+      return;
+    }
+
     if (message.type === "search") {
       await this.search(message);
       return;
@@ -228,12 +240,13 @@ function sidebarHtml(nonce: string): string {
   <style>${sidebarStyles()}</style></head><body>
   <main class="sidebar">
     <div class="status">
+      <span class="eyebrow">Codegraph index</span>
       <strong id="statusText">Checking Codegraph...</strong>
       <span id="workspaceText"></span>
     </div>
     <form id="searchForm" class="search">
       <input id="query" type="search" placeholder="Search symbols..." autocomplete="off">
-      <button type="submit">Search</button>
+      <button id="searchButton" type="submit">Search</button>
     </form>
     <div class="filters">
       <select id="mode"><option value="symbols">Symbols</option><option value="text">Text in files</option><option value="files">File names</option><option value="callers">Callers</option><option value="callees">Callees</option><option value="impact">Impact</option></select>
@@ -248,7 +261,7 @@ function sidebarHtml(nonce: string): string {
     </div>
     <div class="actions workspace-actions" aria-label="Workspace actions">
       <button id="dashboard" type="button" title="Open dashboard" aria-label="Open dashboard">${sidebarIcon("dashboard")}</button>
-      <button id="syncSkills" type="button" title="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}" aria-label="Install bundled Codegraph skills into ${escapeAttribute(skillTargetSummary)}">${sidebarIcon("download")}</button>
+      <button id="syncSkills" type="button" title="Choose destinations for bundled Codegraph skills (${escapeAttribute(skillTargetSummary)})" aria-label="Choose destinations for bundled Codegraph skills">${sidebarIcon("download")}</button>
       <button id="refresh" type="button" title="Refresh Codegraph status" aria-label="Refresh Codegraph status">${sidebarIcon("refresh")}</button>
     </div>
     <div id="error" class="error" hidden></div>
@@ -275,9 +288,10 @@ function sidebarStyles(): string {
       font-kerning: normal;
       text-rendering: optimizeLegibility;
     }
-    .sidebar { display: grid; gap: 8px; padding: 10px; }
-    .status { display: grid; gap: 3px; color: var(--vscode-descriptionForeground); }
-    .status strong { color: var(--vscode-foreground); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .sidebar { display: grid; gap: 9px; padding: 11px 10px; }
+    .status { display: grid; gap: 3px; padding: 2px 0 5px; color: var(--vscode-descriptionForeground); border-bottom: 1px solid color-mix(in srgb, var(--vscode-panel-border) 72%, transparent); }
+    .eyebrow { color: var(--vscode-descriptionForeground); font-size: 10px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+    .status strong { color: var(--vscode-foreground); font-size: 12px; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .status span { font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .search { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
     .filters { display: grid; grid-template-columns: 1fr 1fr 58px; gap: 6px; }
@@ -340,10 +354,14 @@ function sidebarStyles(): string {
     .meta { color: var(--vscode-descriptionForeground); font-size: 11px; }
     .error { font-size: 12px; line-height: 1.35; }
     .results { display: grid; gap: 1px; }
-    .empty { padding: 12px 2px; }
-    .empty strong { margin-bottom: 4px; }
+    .empty { padding: 14px 2px 6px; }
+    .empty strong { margin-bottom: 5px; font-size: 13px; }
+    .empty span { display: block; }
     .empty-actions { display: grid; grid-template-columns: 1fr; gap: 6px; margin-top: 10px; }
     .empty-actions button { width: 100%; text-align: left; min-height: 30px; }
+    .empty-actions button.primary-action { color: var(--vscode-button-foreground); background: var(--vscode-button-background); }
+    .empty-link { display: inline-flex; align-items: center; gap: 5px; width: fit-content; margin-top: 10px; padding: 0; color: var(--vscode-textLink-foreground); background: transparent; border: 0; font-weight: 600; }
+    .empty-link:hover { color: var(--vscode-textLink-activeForeground); background: transparent; text-decoration: underline; }
     .row { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 7px; padding: 7px 4px; border-radius: 4px; cursor: pointer; }
     .row:hover, .row.selected, .row:focus-visible { background: var(--vscode-list-hoverBackground); }
     .row:focus-visible { outline-offset: -1px; }
@@ -372,7 +390,7 @@ function sidebarScript(): string {
     let state = { results: [], selected: {}, workspacePath: '', query: '', loading: false, loadingQuery: '' };
     let searchTimer = 0;
     const els = {
-      statusText: document.getElementById('statusText'), workspaceText: document.getElementById('workspaceText'), query: document.getElementById('query'),
+      statusText: document.getElementById('statusText'), workspaceText: document.getElementById('workspaceText'), query: document.getElementById('query'), searchButton: document.getElementById('searchButton'),
       searchForm: document.getElementById('searchForm'), mode: document.getElementById('mode'), kind: document.getElementById('kind'), limit: document.getElementById('limit'),
       selectAll: document.getElementById('selectAll'), copyLocations: document.getElementById('copyLocations'),
       copyPrompt: document.getElementById('copyPrompt'), syncSkills: document.getElementById('syncSkills'), dashboard: document.getElementById('dashboard'), graph: document.getElementById('graph'), refresh: document.getElementById('refresh'),
@@ -402,6 +420,9 @@ function sidebarScript(): string {
       if (action === 'dashboard') { vscode.postMessage({ type: 'openDashboard' }); }
       if (action === 'graph') { vscode.postMessage({ type: 'openGraph' }); }
       if (action === 'refresh') { vscode.postMessage({ type: 'refresh' }); }
+      if (action === 'copy-setup-prompt') { vscode.postMessage({ type: 'copySetupPrompt' }); }
+      if (action === 'open-setup-guide') { vscode.postMessage({ type: 'openSetupGuide' }); }
+      if (action === 'sync-skills') { vscode.postMessage({ type: 'syncBundledSkills' }); }
     });
     window.addEventListener('message', (event) => {
       const message = event.data;
@@ -435,11 +456,16 @@ function sidebarScript(): string {
       els.commandRow.hidden = !state.commandPreview;
       els.commandPreview.textContent = state.commandPreview || '';
       els.commandPreview.title = state.commandPreview || '';
+      const ready = Boolean(state.active && state.workspacePath);
+      els.query.disabled = !ready;
+      els.searchButton.disabled = !ready;
+      els.mode.disabled = !ready;
+      els.limit.disabled = !ready;
       const selectedCount = selectedItems().length;
       const loadingText = state.loading ? 'Searching "' + state.loadingQuery + '" · ' : '';
       els.meta.textContent = loadingText + (state.results || []).length.toLocaleString() + ' results · ' + selectedCount.toLocaleString() + ' selected';
-      els.copyLocations.disabled = !state.results || state.results.length === 0;
-      els.copyPrompt.disabled = !state.results || state.results.length === 0;
+      els.copyLocations.disabled = !ready || !state.results || state.results.length === 0;
+      els.copyPrompt.disabled = !ready || !state.results || state.results.length === 0;
       if (!state.results || state.results.length === 0) {
         els.results.innerHTML = state.loading
           ? '<div class="empty"><strong>Searching "' + escapeHtml(state.loadingQuery) + '"...</strong><span>Results will appear here with exact file locations.</span></div>'
@@ -477,7 +503,7 @@ function sidebarScript(): string {
         impact: 'Find impact for symbol...'
       };
       els.query.placeholder = placeholders[mode] || 'Search Codegraph...';
-      els.kind.disabled = mode !== 'symbols';
+      els.kind.disabled = !state.active || mode !== 'symbols';
       els.kind.title = mode === 'symbols' ? 'Filter symbol kind' : 'Kind filter only applies to Symbols';
     }
     function rowHtml(item, index) {
@@ -487,6 +513,9 @@ function sidebarScript(): string {
       return '<div class="row" tabindex="0" role="button" data-index="' + index + '"><input type="checkbox" data-check="' + index + '" aria-label="Select ' + escapeHtml(item.name || item.file || 'result') + '"' + (state.selected[key] ? ' checked' : '') + '><div><div class="title"><span class="kind">' + escapeHtml(item.kind || 'symbol') + '</span>' + escapeHtml(item.name || item.file) + '</div><div class="detail">' + escapeHtml(location) + '</div>' + (sig ? '<div class="sig">' + escapeHtml(sig) + '</div>' : '') + '</div></div>';
     }
     function emptyStateHtml() {
+      if (!state.active && state.statusLabel === 'No .codegraph found') {
+        return '<div class="empty setup-empty"><strong>Set up Codegraph for this workspace</strong><span>Codegraph Explorer needs a local <code>.codegraph</code> index before it can search or map your code.</span><div class="empty-actions"><button class="primary-action" type="button" data-empty-action="copy-setup-prompt">Copy setup prompt for an agent</button><button type="button" data-empty-action="sync-skills">Choose bundled skill destinations</button></div><button class="empty-link" type="button" data-empty-action="open-setup-guide">Open colbymchenry/codegraph ↗</button></div>';
+      }
       if (state.error) {
         return '<div class="empty"><strong>Codegraph needs attention</strong><span>Refresh the index status or open the dashboard for the full workspace view.</span><div class="empty-actions"><button type="button" data-empty-action="refresh">Refresh status</button><button type="button" data-empty-action="dashboard">Open dashboard</button></div></div>';
       }

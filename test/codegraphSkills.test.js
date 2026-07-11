@@ -119,6 +119,19 @@ const {
   assert.equal(second.unchanged, 30);
   assert.equal(second.skipped, 0);
 
+  const selectedTarget = path.join(temp, "selected-workspace");
+  const selectedOnly = await syncBundledCodegraphSkills({
+    extensionPath,
+    workspacePath: selectedTarget,
+    targetRootIds: ["agents", "cursor"],
+  });
+  assert.equal(selectedOnly.targets.length, 4);
+  assert.deepEqual(
+    selectedOnly.targetRoots.map((target) => path.relative(selectedTarget, target)).sort(),
+    [".agents\\skills", ".cursor\\skills"].sort(),
+  );
+  assert.equal(fs.existsSync(path.join(selectedTarget, ".claude", "skills")), false);
+
   fs.writeFileSync(path.join(skillRoot, "SKILL.md"), "---\nname: codegraph-search-skills\ndescription: updated\n---\n");
   const third = await syncBundledCodegraphSkills({ extensionPath, workspacePath });
   assert.equal(third.updated, 6);

@@ -490,6 +490,26 @@ export function getDashboardStyles(): string {
       margin-top: 12px;
     }
     .empty-actions button { min-height: 30px; }
+    .setup-empty {
+      max-width: 720px;
+      padding-top: 30px;
+      padding-bottom: 30px;
+    }
+    .setup-empty strong { font-size: 15px; }
+    .text-action {
+      margin-top: 12px;
+      padding: 0;
+      min-height: 22px;
+      color: var(--vscode-textLink-foreground);
+      background: transparent;
+      border: 0;
+      font-weight: 650;
+    }
+    .text-action:hover {
+      color: var(--vscode-textLink-activeForeground);
+      background: transparent;
+      text-decoration: underline;
+    }
     .error { padding: 10px 16px; color: var(--vscode-errorForeground); border-bottom: 1px solid var(--vscode-panel-border); }
     .command-details {
       grid-column: 2 / 3;

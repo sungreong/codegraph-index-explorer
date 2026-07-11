@@ -253,7 +253,9 @@ actions.
 | `Codegraph: Show Status` | Show Codegraph workspace status. |
 | `Codegraph: List Indexed Files` | Browse indexed files. |
 | `Codegraph: Refresh` | Clear cached extension state and refresh data. |
-| `Codegraph: Install Bundled Agent Skills` | Copy bundled Codegraph skills into `codegraph_skills`, `.agents/skills`, `.claude/skills`, `.codex/skills`, `.gemini/skills`, and `.cursor/skills` in one action, creating missing folders. |
+| `Codegraph: Install Bundled Agent Skills (Choose Destinations)` | Choose one or more workspace destinations for bundled Codegraph skills. The extension only writes to the selected locations. |
+| `Codegraph: Copy Agent Setup Prompt` | Copy a safe, agent-ready prompt for installing and initializing Codegraph in the current workspace. |
+| `Codegraph: Open Official Setup Guide` | Open the official [colbymchenry/codegraph](https://github.com/colbymchenry/codegraph) repository. |
 
 ## Settings
 

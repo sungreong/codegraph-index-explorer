@@ -1,5 +1,22 @@
 # Change Log
 
+## [0.0.65] - 2026-07-11
+
+### Changed
+
+- Replaces the Activity Bar icon with the supplied CG graph mark, adapted for transparent, theme-aware rendering.
+
+## [0.0.64] - 2026-07-11
+
+### Added
+
+- Adds agent-ready Codegraph setup prompts and an official Codegraph repository link when a workspace has no `.codegraph` index.
+- Adds explicit destination selection before bundled Codegraph skills are copied.
+
+### Changed
+
+- Refreshes the Activity Bar icon and makes the sidebar and dashboard setup states clearer and more action-oriented.
+
 ## [0.0.63] - 2026-07-10
 
 ### Added

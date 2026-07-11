@@ -21,6 +21,11 @@ interface SkillBundleEntry {
 export interface SyncBundledCodegraphSkillsOptions {
   extensionPath: string;
   workspacePath: string;
+  /**
+   * Skill roots explicitly chosen by the user. When omitted, retain the
+   * legacy behavior of syncing the bundle everywhere it knows about.
+   */
+  targetRootIds?: readonly string[];
 }
 
 export interface SyncBundledCodegraphSkillsReport {
@@ -116,7 +121,7 @@ export async function syncBundledCodegraphSkills(
 
   for (const skill of manifest.skills) {
     const source = resolveInside(bundleRoot, skill.source);
-    const targets = getSkillTargets(options.workspacePath, skill);
+    const targets = getSkillTargets(options.workspacePath, skill, options.targetRootIds);
 
     await assertDirectory(source);
     for (const target of [...new Set(targets)]) {
@@ -142,15 +147,25 @@ export async function syncBundledCodegraphSkills(
   };
 }
 
-function getSkillTargets(workspacePath: string, skill: SkillBundleEntry): string[] {
-  const defaultTargets = CODEGRAPH_SKILL_TARGET_ROOTS.map((targetRoot) => `${targetRoot.relativePath}/${skill.id}`);
+function getSkillTargets(
+  workspacePath: string,
+  skill: SkillBundleEntry,
+  targetRootIds?: readonly string[],
+): string[] {
+  const selectedRoots = targetRootIds === undefined
+    ? CODEGRAPH_SKILL_TARGET_ROOTS
+    : CODEGRAPH_SKILL_TARGET_ROOTS.filter((targetRoot) => targetRootIds.includes(targetRoot.id));
+  const defaultTargets = selectedRoots.map((targetRoot) => `${targetRoot.relativePath}/${skill.id}`);
   const manifestTargets = [
     skill.workspaceCatalogTarget,
     skill.agentSkillTarget,
     ...(skill.additionalSkillTargets ?? []),
   ].filter(isString);
 
-  return [...defaultTargets, ...manifestTargets].map((target) => resolveInside(workspacePath, target));
+  // A target-selection dialog is an explicit promise not to write anywhere
+  // else. Manifest aliases are only honored by the legacy all-target call.
+  const targets = targetRootIds === undefined ? [...defaultTargets, ...manifestTargets] : defaultTargets;
+  return targets.map((target) => resolveInside(workspacePath, target));
 }
 
 function getWorkspaceSkillTargetRoot(workspacePath: string, id: string): string {

@@ -23,6 +23,14 @@ assert.equal(
   manifest.contributes.commands.some((item) => item.command === "codegraph.showUpdateHistory"),
   false,
 );
+assert.equal(
+  manifest.contributes.commands.some((item) => item.command === "codegraph.copySetupPrompt"),
+  true,
+);
+assert.equal(
+  manifest.contributes.commands.some((item) => item.command === "codegraph.openSetupGuide"),
+  true,
+);
 
 const searchKeybinding = manifest.contributes.keybindings.find((item) => item.command === "codegraph.search");
 assert.equal(searchKeybinding.key, "ctrl+alt+g");
